@@ -94,15 +94,36 @@ Completed / established:
 - `ctodsystem.com` purchased
 - Resend account and API key created
 - `ctodsystem.com` connected to Resend through GoDaddy Domain Connect
+- GoDaddy DNS records confirmed present for Resend sending:
+  - MX `send` -> Amazon SES feedback endpoint, priority 10
+  - TXT `resend._domainkey` -> DKIM public key
+  - TXT `send` -> SPF configuration
+  - supporting `_spfm.send` TXT record created by Domain Connect
 
 In progress:
 
-- verify Resend DNS/domain status
+- wait for DNS propagation / Resend domain verification to change from Not Started to Pending/Verified
 - connect Resend SMTP to Supabase Authentication
 - configure sender as `CTOD <invites@ctodsystem.com>`
 - connect `app.ctodsystem.com` to Vercel
 - complete true first-time Location 040 manager invitation test
 - validate: invite email -> create password -> manager login -> complete review -> finalized review updates Master
+
+### Next Session Resume Point
+
+1. Open Resend -> Domains -> `ctodsystem.com`.
+2. Refresh and confirm domain status is **Pending** or **Verified**.
+3. Do not edit the GoDaddy DNS records unless Resend shows a specific validation failure. The required records are already present.
+4. Once verified, open Supabase -> Authentication -> Emails -> SMTP Settings.
+5. Enable custom SMTP and configure:
+   - Sender email: `invites@ctodsystem.com`
+   - Sender name: `CTOD`
+   - Host: `smtp.resend.com`
+   - Port: `465`
+   - Username: `resend`
+   - Password: private Resend API key (never commit to GitHub)
+6. Save/test SMTP.
+7. Then wire/confirm `app.ctodsystem.com` on Vercel and run the real Location 040 invitation test.
 
 Next build after foundation test:
 
