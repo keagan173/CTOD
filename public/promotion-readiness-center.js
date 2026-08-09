@@ -3,8 +3,24 @@ const prc=createClient('https://wezcuprboyvbmlnuqdoi.supabase.co','sb_publishabl
 const $p=s=>document.querySelector(s), escp=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 let roleCache=null,currentCareerReview=null,careerSaveBusy=false;
 
+const CAREER_DIRECTIONS=[
+  ['ADVANCEMENT','Advancement / another position'],
+  ['CURRENT_ROLE','Satisfied in current position'],
+  ['SPECIALIST','Specialist / technical career path'],
+  ['EXPLORING','Still exploring career direction']
+];
+const CAREER_REASONS={
+  ADVANCEMENT:['Wants leadership responsibility','Wants broader business impact','Compensation growth','Ready for a new challenge','Long-term career progression','Other'],
+  CURRENT_ROLE:['Current role is a strong career fit','Formal education / training aligns with this role','Enjoys the work and wants to remain in the role','Wants to deepen mastery and expertise','Schedule / work-life fit is important','Prefers stability in the current role','Nearing retirement / plans to finish career in this role','Other'],
+  SPECIALIST:['Wants deeper technical mastery','Pursuing certifications / credentials','Wants to become a subject-matter expert','Interested in mentoring / training others','Interested in advanced diagnostics / problem solving','Prefers an expert individual-contributor path over people management','Other'],
+  EXPLORING:['Unsure of next career step','Wants exposure to other roles','Needs more experience before deciding','Open to future opportunities','Other']
+};
+
 async function roles(){if(roleCache)return roleCache;const r=await prc.from('roles').select('id,title,sort_order').eq('active',true).order('sort_order');roleCache=r.data||[];return roleCache}
 function roleOptions(list,selected,label='Choose position...'){return `<option value="">${label}</option>`+list.map(r=>`<option value="${r.id}" ${r.id===selected?'selected':''}>${escp(r.title)}</option>`).join('')}
+function directionOptions(selected){return `<option value="">Choose career direction...</option>`+CAREER_DIRECTIONS.map(([v,l])=>`<option value="${v}" ${v===selected?'selected':''}>${escp(l)}</option>`).join('')}
+function reasonOptions(direction,selected){const list=CAREER_REASONS[direction]||[];return `<option value="">Choose reason...</option>`+list.map(x=>`<option value="${escp(x)}" ${x===selected?'selected':''}>${escp(x)}</option>`).join('')}
+function directionLabel(v){return CAREER_DIRECTIONS.find(x=>x[0]===v)?.[1]||'Not set'}
 
 async function resolveActiveReview(){
  const root=$p('#reviewDetail');if(!root||!$p('#promotionReadiness'))return null;
@@ -16,35 +32,66 @@ async function resolveActiveReview(){
 async function installCareerSelectors(){
  const ready=$p('#promotionReadiness'),root=$p('#reviewDetail');if(!ready||!root||root.dataset.careerPathEnhanced==='1')return;
  const review=await resolveActiveReview();if(!review)return;currentCareerReview=review.id;
- const [rs,cd]=await Promise.all([roles(),prc.from('career_decisions').select('desired_role_id,final_desired_role_id').eq('review_id',review.id).maybeSingle()]);
+ const [rs,cd]=await Promise.all([roles(),prc.from('career_decisions').select('career_direction,career_direction_reason,desired_role_id,final_desired_role_id').eq('review_id',review.id).maybeSingle()]);
  const current=cd.data||{};const promoGrid=ready.closest('.grid2');if(!promoGrid)return;
- const path=document.createElement('div');path.className='grid2 career-path-grid';path.style.marginTop='12px';path.innerHTML=`<div><label>Next position desired</label><select id="nextPositionRole" class="field">${roleOptions(rs,current.desired_role_id,'Choose next position...')}</select><div class="sub">The employee's next intended position in CTOD.</div></div><div><label>10-year / final position desired</label><select id="finalPositionRole" class="field">${roleOptions(rs,current.final_desired_role_id,'Choose long-term position...')}</select><div class="sub">Long-term destination or final desired company role.</div></div>`;
+ const path=document.createElement('div');path.className='career-path-wrap';path.style.marginTop='12px';path.innerHTML=`
+   <div class="career-choice-card">
+     <div class="career-choice-head"><div><strong>Employee Career Direction</strong><div class="sub">Career success does not require becoming a manager. Capture the path that best fits the employee.</div></div></div>
+     <div class="grid2 career-direction-grid">
+       <div><label>Career direction</label><select id="careerDirection" class="field">${directionOptions(current.career_direction)}</select></div>
+       <div id="careerReasonWrap"><label>Why this path?</label><select id="careerDirectionReason" class="field">${reasonOptions(current.career_direction,current.career_direction_reason)}</select><div class="sub">Required for Current Position and Specialist paths.</div></div>
+     </div>
+     <div id="careerRoleChoices" class="grid2 career-path-grid" style="margin-top:12px">
+       <div><label>Next position desired</label><select id="nextPositionRole" class="field">${roleOptions(rs,current.desired_role_id,'Choose next position...')}</select><div class="sub">The employee's next intended position in CTOD.</div></div>
+       <div><label>10-year / final position desired</label><select id="finalPositionRole" class="field">${roleOptions(rs,current.final_desired_role_id,'Choose long-term position...')}</select><div class="sub">Long-term destination or final desired company role.</div></div>
+     </div>
+     <div id="careerPathMessage" class="career-path-message"></div>
+   </div>`;
  promoGrid.insertAdjacentElement('afterend',path);root.dataset.careerPathEnhanced='1';
- const save=()=>saveCareerRoles(review.id);$p('#nextPositionRole').onchange=save;$p('#finalPositionRole').onchange=save;
- const msg=$p('#reviewSaveMsg');if(msg){new MutationObserver(()=>{const t=msg.textContent||'';if(t.includes('Draft saved')||t.includes('Review finalized'))saveCareerRoles(review.id)}).observe(msg,{childList:true,subtree:true,characterData:true})}
+ const dir=$p('#careerDirection'),reason=$p('#careerDirectionReason');
+ const refresh=()=>{
+   const v=dir.value;reason.innerHTML=reasonOptions(v,current.career_direction===v?current.career_direction_reason:reason.value);
+   const roleBox=$p('#careerRoleChoices');
+   const noPromotion=v==='CURRENT_ROLE'||v==='SPECIALIST';
+   roleBox.style.display=noPromotion?'none':'';
+   const msg=$p('#careerPathMessage');
+   if(v==='CURRENT_ROLE')msg.innerHTML='<strong>Career commitment:</strong> This employee is choosing success and mastery in their current position. CTOD will not treat this as a lack of ambition.';
+   else if(v==='SPECIALIST')msg.innerHTML='<strong>Specialist track:</strong> This employee is choosing an expert path. Technical mastery, mentoring, credentials and subject-matter expertise are recognized as career growth.';
+   else if(v==='EXPLORING')msg.innerHTML='<strong>Exploration track:</strong> The employee can leave next/final positions open until their direction becomes clearer.';
+   else if(v==='ADVANCEMENT')msg.innerHTML='<strong>Advancement track:</strong> Select the next desired role and long-term destination below.';
+   else msg.textContent='';
+ };
+ dir.onchange=()=>{current.career_direction=dir.value;current.career_direction_reason='';refresh();saveCareerPath(review.id)};
+ reason.onchange=()=>saveCareerPath(review.id);
+ $p('#nextPositionRole').onchange=()=>saveCareerPath(review.id);$p('#finalPositionRole').onchange=()=>saveCareerPath(review.id);
+ refresh();
+ const msg=$p('#reviewSaveMsg');if(msg){new MutationObserver(()=>{const t=msg.textContent||'';if(t.includes('Draft saved')||t.includes('Review finalized'))saveCareerPath(review.id)}).observe(msg,{childList:true,subtree:true,characterData:true})}
 }
-async function saveCareerRoles(reviewId){
- if(careerSaveBusy)return;const next=$p('#nextPositionRole'),final=$p('#finalPositionRole');if(!next||!final)return;careerSaveBusy=true;
- const r=await prc.rpc('save_review_career_roles',{p_review_id:reviewId,p_desired_role_id:next.value||null,p_final_desired_role_id:final.value||null});careerSaveBusy=false;
+async function saveCareerPath(reviewId){
+ if(careerSaveBusy)return;const direction=$p('#careerDirection'),reason=$p('#careerDirectionReason'),next=$p('#nextPositionRole'),final=$p('#finalPositionRole');if(!direction||!reason||!next||!final)return;
+ const v=direction.value;
+ if((v==='CURRENT_ROLE'||v==='SPECIALIST')&&!reason.value){const msg=$p('#reviewSaveMsg');if(msg)msg.textContent='Choose a reason for the selected career direction.';return}
+ careerSaveBusy=true;
+ const r=await prc.rpc('save_review_career_path',{p_review_id:reviewId,p_career_direction:v||null,p_career_direction_reason:reason.value||null,p_desired_role_id:next.value||null,p_final_desired_role_id:final.value||null});careerSaveBusy=false;
  if(r.error){const msg=$p('#reviewSaveMsg');if(msg)msg.textContent='Career path save failed: '+r.error.message}
 }
 
 function injectStyles(){if($p('#promotionReadinessStyles'))return;const s=document.createElement('style');s.id='promotionReadinessStyles';s.textContent=`
  .promotion-center{margin-bottom:14px;background:linear-gradient(135deg,rgba(11,38,62,.98),rgba(8,26,44,.98));border:1px solid #24537a;border-radius:19px;padding:16px;box-shadow:inset 0 1px rgba(255,255,255,.04)}
- .promotion-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;flex-wrap:wrap}.promotion-head h3{margin:3px 0 0;color:#fff;font-size:20px}.promotion-filters{display:flex;gap:10px;flex-wrap:wrap}.promotion-filters select{min-width:220px;background:#091d31!important;color:#eaf2fb!important;border-color:#28506e!important}.promotion-results{margin-top:14px;display:grid;gap:8px}.promotion-row{display:grid;grid-template-columns:1.5fr .8fr 1fr 1fr .8fr;gap:12px;align-items:center;padding:11px 12px;background:#091d31;border:1px solid #173b58;border-radius:13px;color:#dce9f4}.promotion-row small{display:block;color:#7897ae;margin-top:2px}.promotion-badge{display:inline-flex;padding:5px 9px;border-radius:999px;background:#102d48;color:#b9dcf7;font-size:11px;font-weight:900}.promotion-empty{padding:22px;text-align:center;color:#7897ae;border:1px dashed #28506e;border-radius:13px}.career-path-grid select{font-weight:700}
+ .promotion-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;flex-wrap:wrap}.promotion-head h3{margin:3px 0 0;color:#fff;font-size:20px}.promotion-filters{display:flex;gap:10px;flex-wrap:wrap}.promotion-filters select{min-width:200px;background:#091d31!important;color:#eaf2fb!important;border-color:#28506e!important}.promotion-results{margin-top:14px;display:grid;gap:8px}.promotion-row{display:grid;grid-template-columns:1.35fr .75fr .9fr .9fr .9fr .7fr;gap:12px;align-items:center;padding:11px 12px;background:#091d31;border:1px solid #173b58;border-radius:13px;color:#dce9f4}.promotion-row small{display:block;color:#7897ae;margin-top:2px}.promotion-badge{display:inline-flex;padding:5px 9px;border-radius:999px;background:#102d48;color:#b9dcf7;font-size:11px;font-weight:900}.promotion-empty{padding:22px;text-align:center;color:#7897ae;border:1px dashed #28506e;border-radius:13px}.career-path-grid select,.career-direction-grid select{font-weight:700}.career-choice-card{padding:15px;border:1px solid #d7e3ed;border-radius:14px;background:linear-gradient(180deg,#f8fbfd,#f2f7fa)}.career-choice-head{margin-bottom:12px}.career-choice-head strong{font-size:16px}.career-path-message{margin-top:11px;padding:10px 12px;border-radius:10px;background:#eaf4fb;color:#17476b;font-size:12px;line-height:1.45}.career-path-message:empty{display:none}
  @media(max-width:850px){.promotion-row{grid-template-columns:1fr 1fr}.promotion-row>div:first-child{grid-column:1/-1}}
  `;document.head.appendChild(s)}
 
 async function installPromotionCenter(){
  const shell=$p('#masterView .master-shell');if(!shell||$p('#promotionCenter'))return;injectStyles();
- const rs=await roles();const box=document.createElement('section');box.id='promotionCenter';box.className='promotion-center';box.innerHTML=`<div class="promotion-head"><div><div class="master-eyebrow">Promotion Readiness</div><h3>Company Talent Pipeline</h3><div class="master-sub">Select a target role to see every employee who chose it as their next position on their latest finalized review.</div></div><div class="promotion-filters"><select id="pipelineRole" class="field">${roleOptions(rs,null,'All next positions')}</select><select id="pipelineReadiness" class="field"><option value="">All readiness levels</option>${['Ready Now','Ready in 1 Year','Ready in 2-3 Years','Not Yet Ready','Not set'].map(x=>`<option>${x}</option>`).join('')}</select></div></div><div id="promotionResults" class="promotion-results"><div class="promotion-empty">Choose a role or view the complete pipeline.</div></div>`;
- const hero=shell.querySelector('.master-hero');hero?.insertAdjacentElement('afterend',box);$p('#pipelineRole').onchange=renderPipeline;$p('#pipelineReadiness').onchange=renderPipeline;await renderPipeline();
+ const rs=await roles();const box=document.createElement('section');box.id='promotionCenter';box.className='promotion-center';box.innerHTML=`<div class="promotion-head"><div><div class="master-eyebrow">Promotion Readiness</div><h3>Company Talent Pipeline</h3><div class="master-sub">See advancement candidates while also respecting employees who deliberately choose current-role mastery or specialist careers.</div></div><div class="promotion-filters"><select id="pipelineDirection" class="field"><option value="">All career directions</option>${CAREER_DIRECTIONS.map(([v,l])=>`<option value="${v}">${escp(l)}</option>`).join('')}</select><select id="pipelineRole" class="field">${roleOptions(rs,null,'All next positions')}</select><select id="pipelineReadiness" class="field"><option value="">All readiness levels</option>${['Ready Now','Ready in 1 Year','Ready in 2-3 Years','Not Yet Ready','Not set'].map(x=>`<option>${x}</option>`).join('')}</select></div></div><div id="promotionResults" class="promotion-results"><div class="promotion-empty">Choose a filter or view the complete career pipeline.</div></div>`;
+ const hero=shell.querySelector('.master-hero');hero?.insertAdjacentElement('afterend',box);$p('#pipelineDirection').onchange=renderPipeline;$p('#pipelineRole').onchange=renderPipeline;$p('#pipelineReadiness').onchange=renderPipeline;await renderPipeline();
 }
 async function renderPipeline(){
  const host=$p('#promotionResults');if(!host)return;host.innerHTML='<div class="promotion-empty">Loading talent pipeline...</div>';
- const role=$p('#pipelineRole')?.value||'',readiness=$p('#pipelineReadiness')?.value||'';let q=prc.from('v_promotion_pipeline').select('*').order('last_name');if(role)q=q.eq('desired_role_id',role);if(readiness)q=q.eq('readiness',readiness);const r=await q;
+ const direction=$p('#pipelineDirection')?.value||'',role=$p('#pipelineRole')?.value||'',readiness=$p('#pipelineReadiness')?.value||'';let q=prc.from('v_promotion_pipeline').select('*').order('last_name');if(direction)q=q.eq('career_direction',direction);if(role)q=q.eq('desired_role_id',role);if(readiness)q=q.eq('readiness',readiness);const r=await q;
  if(r.error){host.innerHTML=`<div class="promotion-empty">${escp(r.error.message)}</div>`;return}const rows=r.data||[];
- host.innerHTML=rows.length?rows.map(x=>`<div class="promotion-row"><div><strong>${escp(x.first_name)} ${escp(x.last_name)}</strong><small>#${escp(x.employee_code)} · Location ${escp(x.location_code||'')}</small></div><div><small>Current</small><strong>${escp(x.current_role||'—')}</strong></div><div><small>Next Position</small><strong>${escp(x.next_role||'—')}</strong></div><div><small>Long-Term</small><strong>${escp(x.final_desired_role||'—')}</strong></div><div><span class="promotion-badge">${escp(x.readiness||'Not set')}</span></div></div>`).join(''):`<div class="promotion-empty">No employees match these promotion filters yet.</div>`;
+ host.innerHTML=rows.length?rows.map(x=>`<div class="promotion-row"><div><strong>${escp(x.first_name)} ${escp(x.last_name)}</strong><small>#${escp(x.employee_code)} · Location ${escp(x.location_code||'')}</small></div><div><small>Current</small><strong>${escp(x.current_role||'—')}</strong></div><div><small>Career Direction</small><strong>${escp(directionLabel(x.career_direction))}</strong>${x.career_direction_reason?`<small>${escp(x.career_direction_reason)}</small>`:''}</div><div><small>Next Position</small><strong>${escp(x.next_role||'—')}</strong></div><div><small>Long-Term</small><strong>${escp(x.final_desired_role||'—')}</strong></div><div><span class="promotion-badge">${escp(x.readiness||'Not set')}</span></div></div>`).join(''):`<div class="promotion-empty">No employees match these career filters yet.</div>`;
 }
 
 const obs=new MutationObserver(()=>{installCareerSelectors();installPromotionCenter()});obs.observe(document.documentElement,{childList:true,subtree:true});injectStyles();setTimeout(()=>{installCareerSelectors();installPromotionCenter()},800);
