@@ -7,10 +7,17 @@ const $m=s=>document.querySelector(s);
 const escm=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 let roster=[],membershipM=null;
 
+const COACHING_CATEGORIES={
+  recognition:['Customer Service','Employee Ownership','Leadership','Teamwork','Safety','Attendance / Reliability','Productivity','Quality of Work','Initiative','Positive Influence','Other Recognition'],
+  development:['Communication','Leadership Development','Technical Skills','Sales Skills','Customer Service','Organization / Time Management','Teamwork','Accountability','Productivity','Career Development','Other Development'],
+  corrective:['Attendance / Reliability','Safety','Customer Service','Policy / Procedure','Performance / Productivity','Quality of Work','Communication / Conduct','Accountability','Equipment / Property','Minor Documentation','Other Corrective']
+};
+
 function addMonths(dateStr,n){if(!dateStr)return'';const d=new Date(dateStr+'T12:00:00');d.setMonth(d.getMonth()+n);return d.toISOString().slice(0,10)}
 function fmtDate(d){if(!d)return'';const x=new Date(d+'T12:00:00');return x.toLocaleDateString()}
 function fullName(e){return `${e.first_name||''} ${e.last_name||''}`.trim()}
-function stateLabel(c){if(c.type==='recognition')return 'Recognition record';if(!c.active_carry_forward)return 'Resolved 2 of 2';if((c.resolved_streak||0)===1)return 'Resolved 1 of 2';return 'Active'}
+function stateLabel(c){if(!c.include_in_review)return 'Documented only';if(c.type==='recognition')return 'Next review';if(!c.active_carry_forward)return 'Corrected 2 of 2';if((c.resolved_streak||0)===1)return 'Corrected 1 of 2';return 'Active · 0 of 2'}
+function categoryOptions(type){return (COACHING_CATEGORIES[type]||[]).map(x=>`<option value="${escm(x)}">${escm(x)}</option>`).join('')}
 
 function showManagerTab(which){
   ['reviewsView','coachingView','employeesView','scheduleView','masterView','accessView'].forEach(id=>{const el=$m('#'+id);if(el)el.classList.toggle('hidden',id!==which+'View')});
@@ -36,25 +43,38 @@ function employeeOptions(selected=''){return '<option value="">Select employee..
 
 async function loadCoachingWorkspace(selected=''){
   const host=$m('#coachingView');if(!host)return;
-  try{await loadRoster();host.innerHTML=`<section class="card section"><div class="workspace-head"><div><h3>Coaching</h3><div class="sub">Pick an employee, record the moment, save. Built for a 30-second manager workflow.</div></div></div><label>Employee</label><select id="coachEmployee" class="field">${employeeOptions(selected)}</select><div id="coachEmployeeWorkspace"></div></section>`;
+  try{await loadRoster();host.innerHTML=`<section class="card section"><div class="workspace-head"><div><h3>Coaching</h3><div class="sub">Employee → type → category → note → save. Built for a 30-second manager workflow.</div></div></div><label>Employee</label><select id="coachEmployee" class="field">${employeeOptions(selected)}</select><div id="coachEmployeeWorkspace"></div></section>`;
   const sel=$m('#coachEmployee');sel.onchange=()=>renderCoachingEmployee(sel.value);if(selected)renderCoachingEmployee(selected);
   }catch(e){host.innerHTML=`<section class="card section"><div class="issue">${escm(e.message)}</div></section>`}
 }
 
 async function renderCoachingEmployee(employeeId){
   const host=$m('#coachEmployeeWorkspace');if(!employeeId){host.innerHTML='';return}
-  const e=roster.find(x=>x.employee_id===employeeId);
-  host.innerHTML=`<div class="manager-grid"><div class="invite-card compact"><h4>New Coaching Moment</h4><div class="grid2"><div><label>Type</label><select id="mcType" class="field"><option value="recognition">Recognition</option><option value="development">Development</option><option value="corrective">Corrective</option></select></div><div><label>Category</label><input id="mcCategory" class="field" placeholder="Leadership, safety, attendance..."></div></div><label>Notes</label><textarea id="mcNotes" class="field" rows="3" placeholder="What happened?"></textarea><label>Expected outcome / follow-up</label><textarea id="mcOutcome" class="field" rows="2" placeholder="What should happen next?"></textarea><div class="actions" style="margin-top:12px"><button id="mcSave" class="btn primary">Save Coaching Moment</button><span id="mcMsg" class="sub"></span></div></div><div class="invite-card compact"><h4>Coaching History</h4><div id="mcHistory" class="sub">Loading...</div></div></div>`;
-  $m('#mcSave').onclick=async()=>{const category=$m('#mcCategory').value.trim(),notes=$m('#mcNotes').value.trim();if(!category||!notes){$m('#mcMsg').textContent='Category and notes are required.';return}const u=(await sbm.auth.getUser()).data.user;const ins=await sbm.from('coaching_moments').insert({company_id:membershipM.company_id,employee_id:employeeId,created_by_user_id:u.id,occurred_at:new Date().toISOString(),type:$m('#mcType').value,category,notes,expected_outcome:$m('#mcOutcome').value.trim()||null,include_in_review:true,record_status:'active',resolved_streak:0,active_carry_forward:true});if(ins.error){$m('#mcMsg').textContent=ins.error.message;return}$m('#mcMsg').textContent='Saved.';$m('#mcCategory').value='';$m('#mcNotes').value='';$m('#mcOutcome').value='';await loadCoachingHistory(employeeId)};
+  host.innerHTML=`<div class="manager-grid"><div class="invite-card compact"><h4>New Coaching Moment</h4><div class="grid2"><div><label>Type</label><select id="mcType" class="field"><option value="recognition">Recognition</option><option value="development">Development</option><option value="corrective">Corrective</option></select></div><div><label>Category</label><select id="mcCategory" class="field">${categoryOptions('recognition')}</select></div></div><label>Notes</label><textarea id="mcNotes" class="field" rows="4" placeholder="Document the exact coaching moment..."></textarea><label>Follow-up <span class="sub">(optional)</span></label><textarea id="mcOutcome" class="field" rows="2" placeholder="Only add if follow-up is needed"></textarea><label class="location-option" style="margin-top:12px"><input id="mcInclude" type="checkbox"> <span><strong>Include in next review</strong><div class="sub">If included, Development / Corrective items require two consecutive corrected review cycles before clearing.</div></span></label><div class="actions" style="margin-top:12px"><button id="mcSave" class="btn primary">Save Coaching Moment</button><span id="mcMsg" class="sub"></span></div></div><div class="invite-card compact"><h4>Coaching History</h4><div id="mcHistory" class="sub">Loading...</div></div></div>`;
+  const type=$m('#mcType'),cat=$m('#mcCategory'),include=$m('#mcInclude');
+  const syncDefaults=()=>{cat.innerHTML=categoryOptions(type.value);include.checked=type.value!=='recognition'};
+  type.onchange=syncDefaults;
+  cat.onchange=()=>{if(cat.value==='Minor Documentation')include.checked=false};
+  syncDefaults();
+  $m('#mcSave').onclick=async()=>{
+    const category=cat.value,notes=$m('#mcNotes').value.trim(),includeInReview=include.checked;
+    if(!category||!notes){$m('#mcMsg').textContent='Choose a category and enter notes.';return}
+    const u=(await sbm.auth.getUser()).data.user;
+    const coachingType=type.value;
+    const carryForward=includeInReview&&coachingType!=='recognition';
+    const ins=await sbm.from('coaching_moments').insert({company_id:membershipM.company_id,employee_id:employeeId,created_by_user_id:u.id,occurred_at:new Date().toISOString(),type:coachingType,category,notes,expected_outcome:$m('#mcOutcome').value.trim()||null,include_in_review:includeInReview,record_status:'active',resolved_streak:0,active_carry_forward:carryForward});
+    if(ins.error){$m('#mcMsg').textContent=ins.error.message;return}
+    $m('#mcMsg').textContent='Saved with date & time.';$m('#mcNotes').value='';$m('#mcOutcome').value='';syncDefaults();await loadCoachingHistory(employeeId)
+  };
   await loadCoachingHistory(employeeId);
 }
 
 async function loadCoachingHistory(employeeId,target='#mcHistory'){
   const host=$m(target);if(!host)return;
-  const r=await sbm.from('coaching_moments').select('id,occurred_at,type,category,notes,expected_outcome,resolved_streak,active_carry_forward,record_status').eq('employee_id',employeeId).order('occurred_at',{ascending:false}).limit(50);
+  const r=await sbm.from('coaching_moments').select('id,occurred_at,type,category,notes,expected_outcome,include_in_review,resolved_streak,active_carry_forward,record_status').eq('employee_id',employeeId).order('occurred_at',{ascending:false}).limit(50);
   if(r.error){host.innerHTML=`<div class="issue">${escm(r.error.message)}</div>`;return}
   if(!(r.data||[]).length){host.innerHTML='<div class="sub">No coaching moments yet.</div>';return}
-  host.innerHTML=(r.data||[]).map(c=>`<div class="history-row"><div><strong>${escm(c.category)}</strong><div class="sub">${escm(String(c.type).replaceAll('_',' '))} · ${new Date(c.occurred_at).toLocaleDateString()}</div></div><span class="pill ${c.active_carry_forward&&c.type!=='recognition'?'yellow':'green'}">${escm(stateLabel(c))}</span><p>${escm(c.notes||'')}</p>${c.expected_outcome?`<div class="sub"><strong>Follow-up:</strong> ${escm(c.expected_outcome)}</div>`:''}</div>`).join('');
+  host.innerHTML=(r.data||[]).map(c=>`<div class="history-row"><div><strong>${escm(c.category)}</strong><div class="sub">${escm(String(c.type).replaceAll('_',' '))} · ${new Date(c.occurred_at).toLocaleString()}</div></div><span class="pill ${c.include_in_review&&c.type!=='recognition'?'yellow':'green'}">${escm(stateLabel(c))}</span><p>${escm(c.notes||'')}</p>${c.expected_outcome?`<div class="sub"><strong>Follow-up:</strong> ${escm(c.expected_outcome)}</div>`:''}<div class="sub" style="margin-top:6px"><strong>${c.include_in_review?'Included in next review':'Documentation only'}</strong></div></div>`).join('');
 }
 
 async function loadEmployeeWorkspace(){
