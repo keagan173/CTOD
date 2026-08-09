@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const ml3=createClient('https://wezcuprboyvbmlnuqdoi.supabase.co','sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5');
 const $m=s=>document.querySelector(s);
-let busy=false,timer=0;
+let busy=false;
 
 function styles(){
  if($m('#masterLayoutV3Styles'))return;
@@ -32,36 +32,32 @@ async function benchCard(){
    ml3.from('employees').select('id',{count:'exact',head:true}).eq('employment_status','active'),
    ml3.from('v_promotion_readiness').select('employee_id,readiness')
  ]);
- const total=e.count||0;
- const readyIds=new Set((p.data||[]).filter(x=>x.readiness==='Ready Now').map(x=>x.employee_id).filter(Boolean));
- const ready=readyIds.size;
- const percent=total?Math.round(ready/total*1000)/10:0;
- const targetFill=Math.min(100,percent/25*100);
- const color=readinessColor(percent),label=readinessLabel(percent);
+ const total=e.count||0,readyIds=new Set((p.data||[]).filter(x=>x.readiness==='Ready Now').map(x=>x.employee_id).filter(Boolean)),ready=readyIds.size;
+ const percent=total?Math.round(ready/total*1000)/10:0,targetFill=Math.min(100,percent/25*100),color=readinessColor(percent),label=readinessLabel(percent);
  const card=document.createElement('section');card.className='promotion-bench-card';card.id='promotionBenchGauge';
  card.innerHTML=`<div><div class="master-eyebrow">Promotion Capacity</div><h3 class="promotion-bench-title">Ready Now Bench</h3><div class="promotion-bench-sub">25% of the total workforce Ready Now is the healthy CTOD target.</div></div><div class="promotion-big-ring" style="--bench:${targetFill};--bench-color:${color}"><div class="promotion-big-ring-inner"><div class="promotion-big-ring-count">${ready}</div><div class="promotion-big-ring-pct">${percent}% of workforce</div><div class="promotion-big-ring-label">Ready Now</div></div></div><div class="bench-target"><span class="bench-status" style="--bench-color:${color}"><i></i>${label}</span><span><b>${ready}</b> of <b>${total}</b> employees · target <b>25%</b></span></div>`;
  return card;
 }
 
 async function arrange(){
- if(busy)return;busy=true;
+ if(busy)return false;busy=true;
  try{
    styles();makeMasterFirst();
-   const shell=$m('#masterView .master-shell'),map=$m('#ctodMap');if(!shell||!map)return;
-   const mapCard=map.closest('.master-card');if(!mapCard)return;
+   const shell=$m('#masterView .master-shell'),map=$m('#ctodMap');if(!shell||!map)return false;
+   const mapCard=map.closest('.master-card');if(!mapCard)return false;
    let visuals=shell.querySelector('.master-top-visuals');
    if(!visuals){visuals=document.createElement('div');visuals.className='master-top-visuals';const kpis=shell.querySelector('.master-kpis');if(kpis)kpis.insertAdjacentElement('afterend',visuals);else shell.querySelector('.master-hero')?.insertAdjacentElement('afterend',visuals)}
    if(mapCard.parentElement!==visuals)visuals.appendChild(mapCard);
    let gauge=$m('#promotionBenchGauge');if(!gauge){gauge=await benchCard();visuals.appendChild(gauge)}
-   const pipeline=$m('#promotionCenter');if(pipeline){visuals.insertAdjacentElement('afterend',pipeline)}
-   // Keep KPI strip directly under hero, then map + gauge, then talent pipeline.
    const hero=shell.querySelector('.master-hero'),kpis=shell.querySelector('.master-kpis');if(hero&&kpis&&hero.nextElementSibling!==kpis)hero.insertAdjacentElement('afterend',kpis);
    if(kpis&&kpis.nextElementSibling!==visuals)kpis.insertAdjacentElement('afterend',visuals);
-   if(pipeline&&visuals.nextElementSibling!==pipeline)visuals.insertAdjacentElement('afterend',pipeline);
- }catch(e){console.error('CTOD Master Layout v3',e)}finally{busy=false}
+   const pipeline=$m('#promotionCenter');if(pipeline&&visuals.nextElementSibling!==pipeline)visuals.insertAdjacentElement('afterend',pipeline);
+   return true;
+ }catch(e){console.error('CTOD Master Layout v3',e);return false}finally{busy=false}
 }
 
-function schedule(){clearTimeout(timer);timer=setTimeout(arrange,180)}
-new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true});
-setInterval(makeMasterFirst,1500);
-schedule();
+// Do a handful of startup passes only. A permanent whole-document MutationObserver
+// was repeatedly moving the Talent Pipeline DOM while native selects were open,
+// which caused the dropdown menu to flash closed immediately.
+[100,350,800,1500,3000].forEach(ms=>setTimeout(arrange,ms));
+setInterval(makeMasterFirst,2500);
