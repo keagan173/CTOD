@@ -30,5 +30,6 @@ document.addEventListener('click',e=>{
 new MutationObserver(hardenEmployeeIdentityUI).observe(document.documentElement,{childList:true,subtree:true});
 hardenEmployeeIdentityUI();
 
-await import('/exceptional-ui.js?v=20260809-0004');
-import('/talent-intelligence-v2.js?v=20260809-0004');
+await import('/exceptional-ui.js?v=20260809-1015');
+import('/talent-intelligence-v2.js?v=20260809-1015');
+import('/employee-edit.js?v=20260809-1015');
