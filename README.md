@@ -86,7 +86,8 @@ Completed / established:
 - permanent GitHub repository established
 - Supabase production project active
 - Vercel application running
-- Vercel project connected to GitHub repository `keagan173/CTOD`
+- Vercel GitHub App installed and authorized for `keagan173/CTOD`
+- existing Vercel `ctod` project connected directly to GitHub repository `keagan173/CTOD`
 - production branch is `main`
 - Owner account and Access Management implemented in source
 - role/location assignment model implemented
@@ -102,8 +103,10 @@ Completed / established:
 
 Current deployment validation:
 
-- a fresh commit was pushed after connecting Vercel Git integration to trigger a production deployment from `main`
-- confirm the live CTOD deployment now includes the **Access Management** tab
+- GitHub connection was confirmed in Vercel Project Settings -> Git on 2026-08-08
+- this README commit intentionally triggers the first deployment after the confirmed GitHub App/repository connection
+- confirm the resulting deployment source is GitHub `keagan173/CTOD` / `main`, not legacy `vercel deploy`
+- confirm the live CTOD deployment includes the **Access Management** tab
 - after Access Management appears, run the real Location 040 manager invitation test
 
 Foundation acceptance test:
