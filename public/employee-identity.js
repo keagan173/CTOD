@@ -8,12 +8,11 @@ function hardenEmployeeIdentityUI(){
 }
 document.addEventListener('click',e=>{const btn=e.target.closest('#empAdd');if(!btn)return;const input=document.querySelector('#empCode');if(!input||sixDigit.test(input.value.trim()))return;e.preventDefault();e.stopImmediatePropagation();const msg=document.querySelector('#empMsg');if(msg)msg.textContent='Employee number must be exactly 6 digits.';input.focus()},{capture:true});
 new MutationObserver(hardenEmployeeIdentityUI).observe(document.documentElement,{childList:true,subtree:true});hardenEmployeeIdentityUI();
-await import('/exceptional-ui.js?v=20260809-1339');
-import('/talent-intelligence-v2.js?v=20260809-1339');
-import('/employee-edit.js?v=20260809-1339');
-import('/system-admin.js?v=20260809-1339');
-import('/promotion-readiness-center.js?v=20260809-1339');
-import('/master-layout-v3.js?v=20260809-1339');
-import('/master-leadership-summary.js?v=20260809-1339');
-// Map loads last so it upgrades the final Master layout instead of being replaced by later DOM moves.
-setTimeout(()=>import('/master-map-v2.js?v=20260809-1339'),700);
+await import('/exceptional-ui.js?v=20260809-1348');
+import('/talent-intelligence-v2.js?v=20260809-1348');
+import('/employee-edit.js?v=20260809-1348');
+import('/system-admin.js?v=20260809-1348');
+import('/promotion-readiness-center.js?v=20260809-1348');
+import('/master-layout-v3.js?v=20260809-1348');
+import('/master-leadership-summary.js?v=20260809-1348');
+setTimeout(()=>import('/master-map-v2.js?v=20260809-1348'),700);
