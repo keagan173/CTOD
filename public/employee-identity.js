@@ -29,3 +29,5 @@ document.addEventListener('click',e=>{
 
 new MutationObserver(hardenEmployeeIdentityUI).observe(document.documentElement,{childList:true,subtree:true});
 hardenEmployeeIdentityUI();
+
+import('/exceptional-ui.js?v=20260808-2318');
