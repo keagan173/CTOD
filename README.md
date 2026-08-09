@@ -86,7 +86,9 @@ Completed / established:
 - permanent GitHub repository established
 - Supabase production project active
 - Vercel application running
-- Owner account and Access Management implemented
+- Vercel project connected to GitHub repository `keagan173/CTOD`
+- production branch is `main`
+- Owner account and Access Management implemented in source
 - role/location assignment model implemented
 - Location 040 pilot data present
 - review finalization and two-page printing tested
@@ -94,36 +96,26 @@ Completed / established:
 - `ctodsystem.com` purchased
 - Resend account and API key created
 - `ctodsystem.com` connected to Resend through GoDaddy Domain Connect
-- GoDaddy DNS records confirmed present for Resend sending:
-  - MX `send` -> Amazon SES feedback endpoint, priority 10
-  - TXT `resend._domainkey` -> DKIM public key
-  - TXT `send` -> SPF configuration
-  - supporting `_spfm.send` TXT record created by Domain Connect
+- Resend DNS verification completed
+- custom SMTP saved in Supabase Authentication using Resend
+- configured sender: `CTOD <invites@ctodsystem.com>`
 
-In progress:
+Current deployment validation:
 
-- wait for DNS propagation / Resend domain verification to change from Not Started to Pending/Verified
-- connect Resend SMTP to Supabase Authentication
-- configure sender as `CTOD <invites@ctodsystem.com>`
-- connect `app.ctodsystem.com` to Vercel
-- complete true first-time Location 040 manager invitation test
-- validate: invite email -> create password -> manager login -> complete review -> finalized review updates Master
+- a fresh commit was pushed after connecting Vercel Git integration to trigger a production deployment from `main`
+- confirm the live CTOD deployment now includes the **Access Management** tab
+- after Access Management appears, run the real Location 040 manager invitation test
 
-### Next Session Resume Point
+Foundation acceptance test:
 
-1. Open Resend -> Domains -> `ctodsystem.com`.
-2. Refresh and confirm domain status is **Pending** or **Verified**.
-3. Do not edit the GoDaddy DNS records unless Resend shows a specific validation failure. The required records are already present.
-4. Once verified, open Supabase -> Authentication -> Emails -> SMTP Settings.
-5. Enable custom SMTP and configure:
-   - Sender email: `invites@ctodsystem.com`
-   - Sender name: `CTOD`
-   - Host: `smtp.resend.com`
-   - Port: `465`
-   - Username: `resend`
-   - Password: private Resend API key (never commit to GitHub)
-6. Save/test SMTP.
-7. Then wire/confirm `app.ctodsystem.com` on Vercel and run the real Location 040 invitation test.
+1. Owner signs into CTOD.
+2. Access Management is visible only to Owner/Admin.
+3. Owner sends invite to work email for Manager + Location 040.
+4. Invitation arrives from CTOD through Resend.
+5. Recipient clicks CTOD link and creates a password.
+6. Recipient signs in and sees only Location 040 manager access.
+7. Manager can complete reviews and coaching moments.
+8. Finalized review updates Owner Master correctly.
 
 Next build after foundation test:
 
@@ -139,11 +131,12 @@ Next build after foundation test:
 ## Engineering Rules
 
 1. GitHub `main` is the production source of truth.
-2. Do not rebuild the application from deployment fragments.
-3. Supabase is backend-only. Users should not be sent to raw Supabase pages.
-4. All user-visible onboarding, password setup, reviews, dashboards, and printing stay on CTOD/Vercel/custom-domain pages.
-5. Never hard-delete historical employee/review data merely because a manager or employee leaves a location.
-6. Location access belongs to roles/users, while employee history remains with the employee/location record.
-7. Production secrets and API keys must never be committed to GitHub.
+2. Vercel must deploy production from the connected GitHub `main` branch.
+3. Do not rebuild the application from deployment fragments.
+4. Supabase is backend-only. Users should not be sent to raw Supabase pages.
+5. All user-visible onboarding, password setup, reviews, dashboards, and printing stay on CTOD/Vercel/custom-domain pages.
+6. Never hard-delete historical employee/review data merely because a manager or employee leaves a location.
+7. Location access belongs to roles/users, while employee history remains with the employee/location record.
+8. Production secrets and API keys must never be committed to GitHub.
 
 Baseline established: 2026-08-08.
