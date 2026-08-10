@@ -77,43 +77,55 @@ Deno.serve(async (req: Request) => {
       if (activeMembershipErr) throw activeMembershipErr;
 
       // A real, already-onboarded CTOD user gets access updated without creating a second account.
+      // Existing location grants are additive: granting one new store must never silently remove
+      // access to other stores. Company-wide roles are never downgraded by a location invite.
       if (activeMembership) {
-        const { error: memErr } = await admin.from("company_memberships").upsert(
-          {
-            company_id: inv.company_id,
-            user_id: existing.id,
-            role: inv.intended_role,
+        const now = new Date().toISOString();
+        const companyWide = ["owner", "admin", "executive"].includes(activeMembership.role);
+
+        if (!companyWide) {
+          for (const l of locs || []) {
+            const { error: accErr } = await admin.from("user_location_access").upsert(
+              {
+                company_id: inv.company_id,
+                user_id: existing.id,
+                location_id: l.location_id,
+                access_role: inv.intended_role,
+                active: true,
+                revoked_at: null,
+                granted_by_user_id: user.id,
+                granted_at: now,
+              },
+              { onConflict: "user_id,location_id" },
+            );
+            if (accErr) throw accErr;
+          }
+
+          let effectiveRole = inv.intended_role;
+          if (inv.intended_role !== "executive") {
+            const { data: activeAccess, error: activeAccessErr } = await admin
+              .from("user_location_access")
+              .select("access_role")
+              .eq("company_id", inv.company_id)
+              .eq("user_id", existing.id)
+              .eq("active", true);
+            if (activeAccessErr) throw activeAccessErr;
+            const roles = new Set((activeAccess || []).map((row: any) => row.access_role));
+            effectiveRole = roles.has("area_leader")
+              ? "area_leader"
+              : roles.has("market_leader")
+                ? "market_leader"
+                : roles.has("manager")
+                  ? "manager"
+                  : "viewer";
+          }
+
+          const { error: memErr } = await admin.from("company_memberships").update({
+            role: effectiveRole,
             location_id: null,
             active: true,
-          },
-          { onConflict: "company_id,user_id" },
-        );
-        if (memErr) throw memErr;
-
-        const now = new Date().toISOString();
-        const { error: disableErr } = await admin
-          .from("user_location_access")
-          .update({ active: false, revoked_at: now })
-          .eq("company_id", inv.company_id)
-          .eq("user_id", existing.id)
-          .eq("active", true);
-        if (disableErr) throw disableErr;
-
-        for (const l of locs || []) {
-          const { error: accErr } = await admin.from("user_location_access").upsert(
-            {
-              company_id: inv.company_id,
-              user_id: existing.id,
-              location_id: l.location_id,
-              access_role: inv.intended_role,
-              active: true,
-              revoked_at: null,
-              granted_by_user_id: user.id,
-              granted_at: now,
-            },
-            { onConflict: "user_id,location_id" },
-          );
-          if (accErr) throw accErr;
+          }).eq("company_id", inv.company_id).eq("user_id", existing.id);
+          if (memErr) throw memErr;
         }
 
         await admin.from("access_invites").update({ accepted_at: now }).eq("id", inv.id);
@@ -124,9 +136,10 @@ Deno.serve(async (req: Request) => {
           entity_type: "user",
           entity_id: existing.id,
           after_json: {
-            role: inv.intended_role,
+            role: companyWide ? activeMembership.role : inv.intended_role,
             invite_id: inv.id,
             locations: (locs || []).map((x: any) => x.location_id),
+            mode: companyWide ? "already_company_wide" : "additive",
           },
         });
 
@@ -136,8 +149,9 @@ Deno.serve(async (req: Request) => {
           onboarding_required: false,
           email_sent: false,
           email: normalized,
-          role: inv.intended_role,
+          role: companyWide ? activeMembership.role : inv.intended_role,
           location_count: (locs || []).length,
+          already_company_wide: companyWide,
         });
       }
 

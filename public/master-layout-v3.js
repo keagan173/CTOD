@@ -52,6 +52,7 @@ async function arrange(){
    const hero=shell.querySelector('.master-hero'),kpis=shell.querySelector('.master-kpis');if(hero&&kpis&&hero.nextElementSibling!==kpis)hero.insertAdjacentElement('afterend',kpis);
    if(kpis&&kpis.nextElementSibling!==visuals)kpis.insertAdjacentElement('afterend',visuals);
    const pipeline=$m('#promotionCenter');if(pipeline&&visuals.nextElementSibling!==pipeline)visuals.insertAdjacentElement('afterend',pipeline);
+   requestAnimationFrame(()=>window.ctodRenderMasterMap?.(false));
    return true;
  }catch(e){console.error('CTOD Master Layout v3',e);return false}finally{busy=false}
 }

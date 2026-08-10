@@ -31,11 +31,6 @@ function pct(n,d){return d?Math.round(n/d*100):0}
 function clamp(n){return Math.max(0,Math.min(100,Math.round(Number(n)||0)))}
 function ageText(d){if(!d)return'';const ms=Date.now()-new Date(d).getTime(),m=Math.round(ms/60000);if(m<60)return m+'m';if(m<1440)return Math.round(m/60)+'h';return Math.round(m/1440)+'d'}
 
-async function ensureLeaflet(){
-  if(window.L)return;
-  await new Promise((resolve,reject)=>{const css=document.createElement('link');css.rel='stylesheet';css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(css);const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.onload=resolve;s.onerror=reject;document.head.appendChild(s)});
-}
-
 async function getMasterData(){
   const [locations,assignments,reviews,coach,goals,promo,employees]=await Promise.all([
     sbd.from('locations').select('id,location_code,name,status,address_line1,city,state_code,latitude,longitude,market_name,area_name').eq('status','active').order('location_code'),
@@ -63,18 +58,6 @@ function locationMetrics(d,loc){
 function healthClass(v){return v>=80?'green':v>=60?'yellow':'red'}
 function ring(v,label,color='#2ad17f'){return `<div class="ring-wrap"><div class="ring" style="--v:${clamp(v)};--ring:${color}"><b>${clamp(v)}%</b></div><div class="ring-label">${escd(label)}</div></div>`}
 function metric(label,value,max=100){const v=clamp(value);return `<div class="metric-line"><span>${escd(label)}</span><div class="track"><div class="fill" style="width:${v}%"></div></div><b>${v}%</b></div>`}
-
-async function renderMap(d){
-  const mapped=d.locations.filter(l=>Number(l.latitude)&&Number(l.longitude));
-  const host=$d('#ctodMap');if(!host)return;
-  if(!mapped.length){host.innerHTML='<div style="display:grid;place-items:center;height:100%;color:#7190a8">Add latitude/longitude to locations to activate the live map.</div>';return}
-  try{await ensureLeaflet();const map=L.map('ctodMap',{zoomControl:true,attributionControl:true});
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(map);
-    const bounds=[];mapped.forEach(loc=>{const m=locationMetrics(d,loc),lat=Number(loc.latitude),lng=Number(loc.longitude);bounds.push([lat,lng]);const html=`<strong>Location ${escd(loc.location_code)}</strong><br>${escd(loc.city||loc.name)}${loc.state_code?', '+escd(loc.state_code):''}<br><br><b>${m.employees}</b> employees · <b>${m.completion}%</b> review completion<br><b>${m.ready}</b> ready now · <b>${m.coach}</b> active coaching`;
-      const icon=L.divIcon({className:'',html:`<div style="width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${m.health>=80?'#2ad17f':m.health>=60?'#ffbd52':'#ff5f68'};border:3px solid white;box-shadow:0 0 18px rgba(57,198,255,.55)"><span style="display:block;transform:rotate(45deg);font-size:8px;color:#06111f;font-weight:900;text-align:center;line-height:24px">${escd(loc.location_code)}</span></div>`,iconSize:[30,30],iconAnchor:[15,30]});
-      L.marker([lat,lng],{icon}).addTo(map).bindPopup(html)});map.fitBounds(bounds,{padding:[35,35],maxZoom:7});if(mapped.length===1)map.setZoom(8);
-  }catch(e){host.innerHTML='<div style="display:grid;place-items:center;height:100%;color:#7190a8">Map tiles unavailable. Location intelligence is still active below.</div>'}
-}
 
 function buildActivity(d){
   const events=[];
@@ -113,7 +96,9 @@ async function loadMasterCommandCenter(force=false){
         <div class="master-footer-note">CTOD Master · Identity anchored to 6-digit employee number · data refreshes from production</div>
       </div>
     </div><div class="compat-master"><span id="gNow"></span><span id="gYear"></span><span id="gLater"></span><span id="gNot"></span><table><tbody id="promoBody"></tbody></table><div id="masterReviews"></div></div>`;
-    masterLoaded=true;setTimeout(()=>renderMap(d),50);
+    masterLoaded=true;
+    document.dispatchEvent(new CustomEvent('ctod:master-rendered'));
+    if(window.ctodRenderMasterMap)setTimeout(()=>window.ctodRenderMasterMap(true),30);
   }catch(e){host.innerHTML=`<div class="master-shell"><div class="issue">Could not load Master intelligence: ${escd(e.message)}</div></div><div class="compat-master"><span id="gNow"></span><span id="gYear"></span><span id="gLater"></span><span id="gNot"></span><table><tbody id="promoBody"></tbody></table><div id="masterReviews"></div></div>`}
 }
 
