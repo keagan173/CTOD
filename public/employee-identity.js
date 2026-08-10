@@ -8,15 +8,15 @@ function hardenEmployeeIdentityUI(){
 }
 document.addEventListener('click',e=>{const btn=e.target.closest('#empAdd');if(!btn)return;const input=document.querySelector('#empCode');if(!input||sixDigit.test(input.value.trim()))return;e.preventDefault();e.stopImmediatePropagation();const msg=document.querySelector('#empMsg');if(msg)msg.textContent='Employee number must be exactly 6 digits.';input.focus()},{capture:true});
 new MutationObserver(hardenEmployeeIdentityUI).observe(document.documentElement,{childList:true,subtree:true});hardenEmployeeIdentityUI();
-await import('/exceptional-ui.js?v=20260809-1835');
-import('/talent-intelligence-v2.js?v=20260809-1835');
-import('/employee-edit.js?v=20260809-1835');
-import('/system-admin.js?v=20260809-1835');
-import('/promotion-readiness-center.js?v=20260809-1835');
-import('/master-layout-v3.js?v=20260809-1835');
-import('/master-leadership-summary.js?v=20260809-1835');
-import('/master-test-review.js?v=20260809-1835');
-import('/review-summary-v2.js?v=20260809-1835');
-import('/review-launcher.js?v=20260809-1835');
-import('/branding/ctod-branding.js?v=20260809-1835');
-setTimeout(()=>import('/master-map-v2.js?v=20260809-1835'),700);
+await import('/exceptional-ui.js?v=20260809-1849');
+import('/talent-intelligence-v2.js?v=20260809-1849');
+import('/employee-edit.js?v=20260809-1849');
+import('/system-admin.js?v=20260809-1849');
+import('/promotion-readiness-center.js?v=20260809-1849');
+import('/master-layout-v3.js?v=20260809-1849');
+import('/master-leadership-summary.js?v=20260809-1849');
+import('/master-test-review.js?v=20260809-1849');
+import('/review-summary-v2.js?v=20260809-1849');
+import('/review-launcher.js?v=20260809-1849');
+import('/branding/ctod-branding.js?v=20260809-1849');
+setTimeout(()=>import('/master-map-v2.js?v=20260809-1849'),700);
