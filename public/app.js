@@ -145,8 +145,8 @@ function questionCard(q,a,ratings,reasons,i){
 
 function filteredReasons(reasons,q,ratingCode){
   if(!ratingCode)return [];
-  let x=reasons.filter(r=>r.rating_code===ratingCode && (!r.category||!q.category||r.category===q.category));
-  if(!x.length)x=reasons.filter(r=>r.rating_code===ratingCode);
+  let x=reasons.filter(r=>r.rating_code===ratingCode && r.question_id===q.id);
+  if(!x.length)x=reasons.filter(r=>r.rating_code===ratingCode && (!r.category||!q.category||r.category===q.category));
   return x;
 }
 
