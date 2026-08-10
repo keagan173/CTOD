@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL='https://wezcuprboyvbmlnuqdoi.supabase.co';
 const SUPABASE_KEY='sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5';
 const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
+window.ctodSupabase=sb;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 const fmt=d=>d?new Date(d).toLocaleDateString():'';
@@ -248,9 +249,10 @@ async function sendInvite(){
   if(!email){$('#accessMsg').textContent='Enter an email.';return}
   const cr=await sb.rpc('create_access_invite',{p_email:email,p_role:role,p_location_ids:ids});if(cr.error){$('#accessMsg').textContent=cr.error.message;return}
   const session=(await sb.auth.getSession()).data.session;
-  const er=await fetch(SUPABASE_URL+'/functions/v1/send-ctod-invite',{method:'POST',headers:{authorization:'Bearer '+session.access_token,'content-type':'application/json'},body:JSON.stringify({invite_id:cr.data.invite_id})});
+  const deliveryRequestId=crypto.randomUUID();
+  const er=await fetch(SUPABASE_URL+'/functions/v1/send-ctod-invite',{method:'POST',headers:{authorization:'Bearer '+session.access_token,'content-type':'application/json'},body:JSON.stringify({invite_id:cr.data.invite_id,delivery_request_id:deliveryRequestId})});
   const data=await er.json();
-  if(data.email_sent)$('#accessMsg').textContent='Invite email sent.';else if(data.existing_user_updated)$('#accessMsg').textContent=data.already_company_wide?'This user already has company-wide access.':'Existing CTOD user updated with the selected access.';else $('#accessMsg').textContent='Invite created. Email could not be sent automatically; use Copy Link.';
+  if(data.email_sent)$('#accessMsg').textContent=cr.data?.reused?'Invite email resent.':'Invite email sent.';else if(data.existing_user_updated)$('#accessMsg').textContent=data.already_company_wide?'This user already has company-wide access.':'Existing CTOD user updated with the selected access.';else $('#accessMsg').textContent='Invite created. Email could not be sent automatically; use Copy Link.';
   await loadAccess();
 }
 

@@ -7,6 +7,152 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const DEFAULT_APP_URL = "https://ctod.vercel.app/";
+const DEFAULT_FROM = "CTOD <invites@ctodsystem.com>";
+
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function humanizeRole(value: unknown) {
+  return String(value ?? "manager")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function buildInviteUrl(token: string) {
+  const configured = Deno.env.get("CTOD_APP_URL") || DEFAULT_APP_URL;
+  const appUrl = new URL(configured);
+  if (appUrl.protocol !== "https:") throw new Error("CTOD_APP_URL must use HTTPS");
+  appUrl.pathname = "/";
+  appUrl.search = "";
+  appUrl.hash = "";
+  appUrl.searchParams.set("invite", token);
+  return appUrl.toString();
+}
+
+function buildInviteEmail({
+  inviteUrl,
+  role,
+  locations,
+  expiresAt,
+}: {
+  inviteUrl: string;
+  role: string;
+  locations: string[];
+  expiresAt: string;
+}) {
+  const roleLabel = humanizeRole(role);
+  const locationLabel = locations.length ? locations.join(", ") : "your assigned CTOD workspace";
+  const expiryLabel = new Date(expiresAt).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "America/Denver",
+  });
+  const subjectLocation = locations.length === 1 ? ` — ${locations[0]}` : "";
+  const safeUrl = escapeHtml(inviteUrl);
+
+  return {
+    subject: `Your CTOD ${roleLabel} invitation${subjectLocation}`,
+    text: [
+      "You have been invited to CTOD.",
+      "",
+      `Role: ${roleLabel}`,
+      `Access: ${locationLabel}`,
+      "",
+      "Create your password and activate access:",
+      inviteUrl,
+      "",
+      `This invitation expires ${expiryLabel}.`,
+      "If you were not expecting this invitation, you can ignore this email.",
+    ].join("\n"),
+    html: `<!doctype html>
+<html lang="en">
+  <body style="margin:0;background:#06111f;color:#eaf3f8;font-family:Arial,Helvetica,sans-serif">
+    <div style="display:none;max-height:0;overflow:hidden">Create your CTOD password and activate ${escapeHtml(locationLabel)} access.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#06111f;padding:32px 12px">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#0b1f33;border:1px solid #28506b;border-radius:16px;overflow:hidden">
+          <tr><td style="padding:30px 32px 18px;text-align:center;border-bottom:1px solid #22445c">
+            <div style="font-size:34px;font-weight:900;letter-spacing:4px;color:#e0b23d">CTOD</div>
+            <div style="margin-top:7px;font-size:11px;font-weight:700;letter-spacing:2px;color:#9db4c4">BUILDING PEOPLE. DRIVING PERFORMANCE.</div>
+          </td></tr>
+          <tr><td style="padding:30px 32px">
+            <h1 style="margin:0 0 14px;font-size:24px;line-height:1.25;color:#ffffff">You have been invited</h1>
+            <p style="margin:0 0 22px;color:#bfd0dc;font-size:15px;line-height:1.6">Create your password to activate your CTOD access.</p>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 24px;background:#081827;border:1px solid #23465f;border-radius:12px">
+              <tr><td style="padding:14px 16px;color:#8ca8ba;font-size:12px">ROLE</td><td style="padding:14px 16px;text-align:right;color:#ffffff;font-size:14px;font-weight:700">${escapeHtml(roleLabel)}</td></tr>
+              <tr><td style="padding:14px 16px;border-top:1px solid #1f3c51;color:#8ca8ba;font-size:12px">ACCESS</td><td style="padding:14px 16px;border-top:1px solid #1f3c51;text-align:right;color:#ffffff;font-size:14px;font-weight:700">${escapeHtml(locationLabel)}</td></tr>
+            </table>
+            <div style="text-align:center;margin:28px 0">
+              <a href="${safeUrl}" style="display:inline-block;background:#d8aa35;color:#07111d;text-decoration:none;font-size:15px;font-weight:900;padding:14px 24px;border-radius:10px">Create Password &amp; Open CTOD</a>
+            </div>
+            <p style="margin:0;color:#8ea8ba;font-size:12px;line-height:1.6;text-align:center">This invitation expires ${escapeHtml(expiryLabel)}. If you were not expecting it, you can ignore this email.</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`,
+  };
+}
+
+async function sendInviteEmail({
+  inviteId,
+  deliveryRequestId,
+  to,
+  inviteUrl,
+  role,
+  locations,
+  expiresAt,
+}: {
+  inviteId: string;
+  deliveryRequestId: string;
+  to: string;
+  inviteUrl: string;
+  role: string;
+  locations: string[];
+  expiresAt: string;
+}) {
+  const apiKey = Deno.env.get("RESEND_API_KEY");
+  if (!apiKey) throw new Error("CTOD invitation email is not configured");
+
+  const email = buildInviteEmail({ inviteUrl, role, locations, expiresAt });
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "Idempotency-Key": `ctod-access-invite-${inviteId}-${deliveryRequestId}`,
+    },
+    body: JSON.stringify({
+      from: Deno.env.get("CTOD_INVITE_FROM") || DEFAULT_FROM,
+      to: [to],
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+      tags: [
+        { name: "category", value: "access_invite" },
+        { name: "application", value: "ctod" },
+      ],
+    }),
+  });
+
+  const result: any = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const providerMessage = typeof result?.message === "string" ? result.message : "Email provider rejected the request";
+    throw new Error(`CTOD invitation email failed: ${providerMessage}`);
+  }
+  if (!result?.id) throw new Error("CTOD invitation email did not return a delivery ID");
+  return String(result.id);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
@@ -30,7 +176,12 @@ Deno.serve(async (req: Request) => {
     } = await admin.auth.getUser(jwt);
     if (userErr || !user) return json({ error: "Authentication required" }, 401);
 
-    const { invite_id } = await req.json();
+    const body = await req.json();
+    const invite_id = String(body?.invite_id || "");
+    const suppliedRequestId = String(body?.delivery_request_id || "");
+    const deliveryRequestId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(suppliedRequestId)
+      ? suppliedRequestId.toLowerCase()
+      : crypto.randomUUID();
     const { data: inv, error: invErr } = await admin
       .from("access_invites")
       .select("id,company_id,email,intended_role,token,accepted_at,revoked_at,expires_at,invited_by_user_id")
@@ -55,12 +206,18 @@ Deno.serve(async (req: Request) => {
 
     const { data: locs, error: locErr } = await admin
       .from("access_invite_locations")
-      .select("location_id")
+      .select("location_id,locations(location_code,name)")
       .eq("invite_id", inv.id);
     if (locErr) throw locErr;
 
     const normalized = String(inv.email).trim().toLowerCase();
-    const inviteUrl = `https://ctod.vercel.app/?invite=${inv.token}`;
+    const inviteUrl = buildInviteUrl(String(inv.token));
+    const locationLabels = (locs || []).map((row: any) => {
+      const location = Array.isArray(row.locations) ? row.locations[0] : row.locations;
+      if (!location) return "Assigned location";
+      const code = String(location.location_code || "").padStart(3, "0");
+      return `Location ${code} · ${location.name || "CTOD"}`;
+    });
 
     const { data: list, error: listErr } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (listErr) throw listErr;
@@ -155,21 +312,18 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      // Auth record exists, but the person has not finished CTOD onboarding yet.
-      // Keep the access invite pending and send them back through CTOD to create a password.
-      const { error: recoveryErr } = await admin.auth.resetPasswordForEmail(inv.email, {
-        redirectTo: inviteUrl,
+      // An Auth record may exist before CTOD onboarding is complete. Send the same branded,
+      // token-based CTOD invitation in both cases; never route a manager through a raw
+      // Supabase recovery email or an Auth redirect URL.
+      const deliveryId = await sendInviteEmail({
+        inviteId: inv.id,
+        deliveryRequestId,
+        to: normalized,
+        inviteUrl,
+        role: inv.intended_role,
+        locations: locationLabels,
+        expiresAt: inv.expires_at,
       });
-      if (recoveryErr) {
-        return json({
-          ok: true,
-          existing_user_updated: false,
-          onboarding_required: true,
-          email_sent: false,
-          invite_url: inviteUrl,
-          message: recoveryErr.message,
-        });
-      }
 
       await admin.from("audit_events").insert({
         company_id: inv.company_id,
@@ -181,6 +335,9 @@ Deno.serve(async (req: Request) => {
           role: inv.intended_role,
           invite_id: inv.id,
           locations: (locs || []).map((x: any) => x.location_id),
+          provider: "resend",
+          delivery_id: deliveryId,
+          delivery_request_id: deliveryRequestId,
         },
       });
 
@@ -191,22 +348,35 @@ Deno.serve(async (req: Request) => {
         email_sent: true,
         email: normalized,
         invite_url: inviteUrl,
+        delivery_id: deliveryId,
       });
     }
 
-    const { data: inviteData, error: emailErr } = await admin.auth.admin.inviteUserByEmail(inv.email, {
-      redirectTo: inviteUrl,
+    const deliveryId = await sendInviteEmail({
+      inviteId: inv.id,
+      deliveryRequestId,
+      to: normalized,
+      inviteUrl,
+      role: inv.intended_role,
+      locations: locationLabels,
+      expiresAt: inv.expires_at,
     });
-    if (emailErr) {
-      return json({
-        ok: true,
-        email_sent: false,
-        existing_user_updated: false,
-        onboarding_required: true,
-        invite_url: inviteUrl,
-        message: emailErr.message,
-      });
-    }
+
+    await admin.from("audit_events").insert({
+      company_id: inv.company_id,
+      actor_user_id: user.id,
+      event_type: "access.onboarding_email_sent",
+      entity_type: "access_invite",
+      entity_id: inv.id,
+      after_json: {
+        role: inv.intended_role,
+        invite_id: inv.id,
+        locations: (locs || []).map((x: any) => x.location_id),
+        provider: "resend",
+        delivery_id: deliveryId,
+        delivery_request_id: deliveryRequestId,
+      },
+    });
 
     return json({
       ok: true,
@@ -214,7 +384,7 @@ Deno.serve(async (req: Request) => {
       existing_user_updated: false,
       onboarding_required: true,
       invite_url: inviteUrl,
-      auth_user_id: inviteData?.user?.id || null,
+      delivery_id: deliveryId,
     });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 400);

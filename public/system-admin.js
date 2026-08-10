@@ -239,10 +239,11 @@ async function renderAccessPanel(location,accessRows,invites){
     }
     let delivery={};
     try{
+      const deliveryRequestId=crypto.randomUUID();
       const response=await fetch(SUPABASE_URL+'/functions/v1/send-ctod-invite',{
         method:'POST',
         headers:{authorization:'Bearer '+session.access_token,'content-type':'application/json'},
-        body:JSON.stringify({invite_id:created.data.invite_id})
+        body:JSON.stringify({invite_id:created.data.invite_id,delivery_request_id:deliveryRequestId})
       });
       delivery=await response.json();
       if(!response.ok||delivery.error)throw new Error(delivery.error||'Invitation delivery failed');
@@ -254,7 +255,7 @@ async function renderAccessPanel(location,accessRows,invites){
     if(delivery.existing_user_updated){
       nextMsg.textContent=`${email} now has access to Location ${location.location_code}.`;
     }else if(delivery.email_sent){
-      nextMsg.textContent=`Activation email sent to ${email}. Access will appear here after activation.`;
+      nextMsg.textContent=`Activation email ${created.data?.reused?'resent':'sent'} to ${email}. Access will appear here after activation.`;
     }else{
       nextMsg.textContent=`Invitation created for ${email}, but automatic email delivery was not confirmed. Use the main Access tab to copy the activation link.`;
     }
