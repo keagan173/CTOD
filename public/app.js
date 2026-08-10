@@ -140,18 +140,17 @@ function questionCard(q,a,ratings,reasons,i){
   const ratingOpts=['<option value="">Choose rating...</option>'].concat(ratings.map(r=>'<option value="'+r.id+'" data-code="'+esc(r.code)+'" '+(a.rating_id===r.id?'selected':'')+'>'+esc(r.label)+'</option>')).join('');
   const chosenRating=ratings.find(r=>r.id===a.rating_id);const rs=filteredReasons(reasons,q,chosenRating?.code);
   const reasonOpts=['<option value="">Choose reason...</option>'].concat(rs.map(r=>'<option value="'+r.id+'" '+(a.primary_reason_id===r.id?'selected':'')+'>'+esc(r.label)+'</option>')).join('');
-  return '<div class="invite-card qcard" data-qid="'+q.id+'" data-category="'+esc(q.category||'')+'"><div style="display:flex;gap:10px"><div class="pill">'+(i+1)+'</div><strong style="line-height:1.35">'+esc(q.text)+'</strong></div><div class="grid2" style="margin-top:10px"><div><label>Rating</label><select class="field qrating">'+ratingOpts+'</select></div><div><label>Reason</label><select class="field qreason">'+reasonOpts+'</select></div></div><label>Manager note</label><textarea class="field qnote" rows="3" placeholder="Add specific examples or context...">'+esc(a.manager_note||'')+'</textarea><label style="display:flex;gap:8px;align-items:center;font-weight:700"><input type="checkbox" class="qconfirm" '+(a.confirmed?'checked':'')+'> Confirm this answer for the current review cycle</label><div class="sub qstatus"></div></div>';
+  const status=chosenRating?.code&&rs.length!==3?'Configuration warning: '+rs.length+' tailored reasons found; expected 3.':'';
+  return '<div class="invite-card qcard" data-qid="'+q.id+'" data-category="'+esc(q.category||'')+'"><div style="display:flex;gap:10px"><div class="pill">'+(i+1)+'</div><strong style="line-height:1.35">'+esc(q.text)+'</strong></div><div class="grid2" style="margin-top:10px"><div><label>Rating</label><select class="field qrating">'+ratingOpts+'</select></div><div><label>Reason</label><select class="field qreason">'+reasonOpts+'</select></div></div><label>Manager note</label><textarea class="field qnote" rows="3" placeholder="Add specific examples or context...">'+esc(a.manager_note||'')+'</textarea><label style="display:flex;gap:8px;align-items:center;font-weight:700"><input type="checkbox" class="qconfirm" '+(a.confirmed?'checked':'')+'> Confirm this answer for the current review cycle</label><div class="sub qstatus">'+esc(status)+'</div></div>';
 }
 
 function filteredReasons(reasons,q,ratingCode){
   if(!ratingCode)return [];
-  let x=reasons.filter(r=>r.rating_code===ratingCode && r.question_id===q.id);
-  if(!x.length)x=reasons.filter(r=>r.rating_code===ratingCode && (!r.category||!q.category||r.category===q.category));
-  return x;
+  return reasons.filter(r=>r.rating_code===ratingCode && r.question_id===q.id);
 }
 
 function wireQuestionReasonFilters(questions,ratings,reasons){
-  document.querySelectorAll('.qcard').forEach(card=>{const q=questions.find(x=>x.id===card.dataset.qid);const rating=card.querySelector('.qrating'),reason=card.querySelector('.qreason');rating.onchange=()=>{const rr=ratings.find(x=>x.id===rating.value);const opts=filteredReasons(reasons,q,rr?.code);reason.innerHTML='<option value="">Choose reason...</option>'+opts.map(r=>'<option value="'+r.id+'">'+esc(r.label)+'</option>').join('')}});
+  document.querySelectorAll('.qcard').forEach(card=>{const q=questions.find(x=>x.id===card.dataset.qid);const rating=card.querySelector('.qrating'),reason=card.querySelector('.qreason'),status=card.querySelector('.qstatus');rating.onchange=()=>{const rr=ratings.find(x=>x.id===rating.value);const opts=filteredReasons(reasons,q,rr?.code);reason.innerHTML='<option value="">Choose reason...</option>'+opts.map(r=>'<option value="'+r.id+'">'+esc(r.label)+'</option>').join('');status.textContent=rr?.code&&opts.length!==3?'Configuration warning: '+opts.length+' tailored reasons found; expected 3.':''}});
 }
 
 function developmentPanel(f){
