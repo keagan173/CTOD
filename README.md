@@ -36,6 +36,9 @@ The Owner account manages company-wide CTOD data and can:
 - change access when leaders transfer or change roles
 - preserve historical review and employee data when access changes
 - view promotion readiness, coaching, goals, trends, and finalized review history
+- search employees by name or six-digit employee number
+- open every finalized review in read-only mode
+- generate the dated two-page summary for any finalized review
 
 ### Location Manager
 
@@ -46,9 +49,10 @@ A Location Manager is tied to one or more assigned locations and can:
 - complete and finalize employee reviews
 - create and manage coaching moments
 - print the professional two-page employee review summary
-- add employees to the location roster
+- add employees to the location roster using the permanent six-digit employee number
 - edit employee/job information as permitted
 - deactivate employees from the active roster while preserving historical records
+- search an employee and open all prior finalized reviews in read-only mode
 
 ## Invitation / Onboarding Flow
 
@@ -74,62 +78,47 @@ Existing users must be reassigned without creating a second account. Access chan
 - required-field validation that clearly identifies missing items
 - coaching moments integrated into the review lifecycle
 - two-cycle coaching resolution rule
-- raise request workflow with reason, employee explanation, and timing
+- question-specific reasons across all five rating bands
+- development goal dropdown
+- standard career direction for every job role
+- next job role and ultimate / long-term job role
+- manager promotion-readiness selection after employee career choices
+- structured compensation discussion with employee reason/timing and manager timing/comment
 - professional two-page printable review summary for employee acknowledgment/signature and HR scanning
-- signed summary does **not** need to be stored in the Owner Master
-- finalized reviews automatically update Master reporting
+- finalized reviews are immutable/read-only
+- finalized reviews automatically update Master reporting and talent pipeline
+- finalized review history follows the employee's six-digit identity across location transfers
 
-## Current Rollout Status - 2026-08-08
+## Current Rollout Status - 2026-08-09
 
 Completed / established:
 
 - permanent GitHub repository established
 - Supabase production project active
-- Vercel application running
-- Vercel GitHub App installed and authorized for `keagan173/CTOD`
-- existing Vercel `ctod` project connected directly to GitHub repository `keagan173/CTOD`
-- production branch is `main`
-- Owner account and Access Management implemented in source
+- Vercel application running and connected to GitHub `main`
+- Owner account and Access Management implemented
 - role/location assignment model implemented
-- Location 040 pilot data present
-- review finalization and two-page printing tested
+- Manager Coaching, Employees, Review Schedule, Reviews, and Master workspaces implemented
+- six-digit employee number established as permanent employee identity
+- employee transfer/history model preserves prior reviews and coaching
+- review finalization and two-page printing implemented
+- finalized review archive and read-only historical viewer implemented
 - Master reporting connected to finalized review data
-- `ctodsystem.com` purchased
-- Resend account and API key created
-- `ctodsystem.com` connected to Resend through GoDaddy Domain Connect
-- Resend DNS verification completed
-- custom SMTP saved in Supabase Authentication using Resend
-- configured sender: `CTOD <invites@ctodsystem.com>`
+- company talent pipeline, promotion readiness, map, succession intelligence, and leadership summary implemented
+- Presentation Mode implemented for executive demonstrations
+- career-direction workflow standardized across every job role
+- compensation workflow standardized and structured
+- question-specific review reasons built across all active questions and all five rating bands
+- production test employee/review data cleared in preparation for real Location 040 rollout
+- `ctodsystem.com` purchased and Resend configured for CTOD invitations
 
-Current deployment validation:
+### Operation-ready baseline
 
-- GitHub connection was confirmed in Vercel Project Settings -> Git on 2026-08-08
-- this README commit intentionally triggers the first deployment after the confirmed GitHub App/repository connection
-- confirm the resulting deployment source is GitHub `keagan173/CTOD` / `main`, not legacy `vercel deploy`
-- confirm the live CTOD deployment includes the **Access Management** tab
-- after Access Management appears, run the real Location 040 manager invitation test
+The current production baseline is documented in:
 
-Foundation acceptance test:
+`docs/OPERATION_READY_BASELINE_2026-08-09.md`
 
-1. Owner signs into CTOD.
-2. Access Management is visible only to Owner/Admin.
-3. Owner sends invite to work email for Manager + Location 040.
-4. Invitation arrives from CTOD through Resend.
-5. Recipient clicks CTOD link and creates a password.
-6. Recipient signs in and sees only Location 040 manager access.
-7. Manager can complete reviews and coaching moments.
-8. Finalized review updates Owner Master correctly.
-
-Next build after foundation test:
-
-- Location Employee Management
-- add/deactivate employee workflow
-- improved manager coaching workspace
-- promotion-readiness gauges and red/green readiness screen
-- succession/depth charts
-- talent heatmaps
-- multi-location Area Director dashboards
-- trend and leadership pipeline reporting
+The next step is a manual human acceptance test using the first real Location 040 employee. The review should be completed end-to-end, then verified in Master, Review History, read-only finalized view, and the two-page summary before loading the remainder of the location roster.
 
 ## Engineering Rules
 
@@ -138,8 +127,10 @@ Next build after foundation test:
 3. Do not rebuild the application from deployment fragments.
 4. Supabase is backend-only. Users should not be sent to raw Supabase pages.
 5. All user-visible onboarding, password setup, reviews, dashboards, and printing stay on CTOD/Vercel/custom-domain pages.
-6. Never hard-delete historical employee/review data merely because a manager or employee leaves a location.
-7. Location access belongs to roles/users, while employee history remains with the employee/location record.
-8. Production secrets and API keys must never be committed to GitHub.
+6. Never hard-delete legitimate historical employee/review data merely because a manager or employee leaves a location.
+7. Test data may be cleared before a production rollout, but real employee history must remain permanent.
+8. Location access belongs to roles/users, while employee history remains attached to the permanent six-digit employee identity.
+9. Finalized reviews are read-only records.
+10. Production secrets and API keys must never be committed to GitHub.
 
-Baseline established: 2026-08-08.
+Baseline updated: 2026-08-09.
