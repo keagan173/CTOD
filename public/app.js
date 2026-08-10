@@ -9,6 +9,28 @@ const fmt=d=>d?new Date(d).toLocaleDateString():'';
 const today=()=>new Date().toISOString().slice(0,10);
 let membership=null,locations=[],currentReview=null,currentForm=null;
 const params=new URLSearchParams(location.search); const inviteToken=params.get('invite');
+let resolveWorkspaceReady,workspaceReadyResolved=false;
+window.ctodWorkspaceReady=new Promise(resolve=>{resolveWorkspaceReady=resolve});
+
+function publishWorkspaceContext(user,scopeRows=[]){
+  const role=membership?.role||null;
+  const isMaster=['owner','admin','executive'].includes(role);
+  const scopedLocations=(scopeRows||[]).map(row=>{
+    const loc=Array.isArray(row.locations)?row.locations[0]:row.locations;
+    return loc?{id:row.location_id,location_code:loc.location_code,name:loc.name,access_role:row.access_role}:null;
+  }).filter(Boolean);
+  const one=scopedLocations.length===1?scopedLocations[0]:null;
+  const workspaceLabel=isMaster?'Master Workspace · Company-wide':one?`LOC${String(one.location_code).padStart(3,'0')} Workspace · ${one.name}`:scopedLocations.length?`${scopedLocations.length} Location Workspace`:'No active location access';
+  const context={companyId:membership?.company_id||null,role,isMaster,locations:scopedLocations,userId:user?.id||null,email:user?.email||null,workspaceLabel};
+  window.ctodWorkspaceContext=context;
+  document.documentElement.dataset.ctodWorkspace=isMaster?'master':'location';
+  document.documentElement.dataset.ctodRole=role||'none';
+  const title=$('.top h2');if(title)title.textContent=isMaster?'CTOD Master':one?`LOC${String(one.location_code).padStart(3,'0')} Workspace`:'CTOD Location Workspace';
+  const who=$('#who');if(who)who.textContent=[user?.email,workspaceLabel].filter(Boolean).join(' · ');
+  if(!workspaceReadyResolved){workspaceReadyResolved=true;resolveWorkspaceReady(context)}
+  document.dispatchEvent(new CustomEvent('ctod:workspace-ready',{detail:context}));
+  return context;
+}
 
 function setTab(which){
   for(const x of ['reviews','master','access']) $('#'+x+'View').classList.toggle('hidden',x!==which);
@@ -63,9 +85,11 @@ async function loadMembership(){
   const r=await sb.from('company_memberships').select('company_id,role,active').eq('user_id',u.id).eq('active',true).maybeSingle();
   membership=r.data;
   const isOwner=['owner','admin','executive'].includes(membership?.role);
+  const access=membership?await sb.from('user_location_access').select('location_id,access_role,locations(location_code,name)').eq('company_id',membership.company_id).eq('user_id',u.id).eq('active',true):{data:[]};
+  publishWorkspaceContext(u,access.data||[]);
   $('#tabMaster').style.display=isOwner?'':'none';
   $('#tabAccess').style.display=['owner','admin'].includes(membership?.role)?'':'none';
-  if(!isOwner&&!$('#masterView').classList.contains('hidden')) setTab('reviews');
+  setTab(isOwner?'master':'reviews');
 }
 
 async function loadAll(){
@@ -226,7 +250,7 @@ async function sendInvite(){
   const session=(await sb.auth.getSession()).data.session;
   const er=await fetch(SUPABASE_URL+'/functions/v1/send-ctod-invite',{method:'POST',headers:{authorization:'Bearer '+session.access_token,'content-type':'application/json'},body:JSON.stringify({invite_id:cr.data.invite_id})});
   const data=await er.json();
-  if(data.email_sent)$('#accessMsg').textContent='Invite email sent.';else if(data.already_onboarded)$('#accessMsg').textContent='Existing CTOD user updated with the selected access.';else $('#accessMsg').textContent='Invite created. Email could not be sent automatically; use Copy Link.';
+  if(data.email_sent)$('#accessMsg').textContent='Invite email sent.';else if(data.existing_user_updated)$('#accessMsg').textContent=data.already_company_wide?'This user already has company-wide access.':'Existing CTOD user updated with the selected access.';else $('#accessMsg').textContent='Invite created. Email could not be sent automatically; use Copy Link.';
   await loadAccess();
 }
 

@@ -47,4 +47,9 @@ async function render(selectedRole){
     }));
   }catch(e){view.innerHTML=`<div class="test-review-shell"><div style="padding:40px;color:#ff8b92">Could not load Test Review: ${esc(e.message)}</div></div>`}
 }
-let tries=0;const boot=setInterval(async()=>{tries++;if(await ensureTab()){clearInterval(boot)}if(tries>30)clearInterval(boot)},300);
+async function bootTestReview(){
+  const workspace=window.ctodWorkspaceReady?await window.ctodWorkspaceReady:window.ctodWorkspaceContext;
+  if(!workspace?.isMaster)return;
+  let tries=0;const boot=setInterval(async()=>{tries++;if(await ensureTab()){clearInterval(boot)}if(tries>30)clearInterval(boot)},300);
+}
+bootTestReview();

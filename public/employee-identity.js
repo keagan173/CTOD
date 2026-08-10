@@ -8,20 +8,27 @@ function hardenEmployeeIdentityUI(){
 }
 document.addEventListener('click',e=>{const btn=e.target.closest('#empAdd');if(!btn)return;const input=document.querySelector('#empCode');if(!input||sixDigit.test(input.value.trim()))return;e.preventDefault();e.stopImmediatePropagation();const msg=document.querySelector('#empMsg');if(msg)msg.textContent='Employee number must be exactly 6 digits.';input.focus()},{capture:true});
 new MutationObserver(hardenEmployeeIdentityUI).observe(document.documentElement,{childList:true,subtree:true});hardenEmployeeIdentityUI();
-await import('/exceptional-ui.js?v=20260809-2227');
-import('/talent-intelligence-v2.js?v=20260809-2227');
-import('/employee-edit.js?v=20260809-2227');
-import('/system-admin.js?v=20260809-2227');
-import('/promotion-readiness-center.js?v=20260809-2227');
-import('/review-career-standard.js?v=20260809-2227');
-import('/compensation-standard.js?v=20260809-2227');
-import('/review-history-summary.js?v=20260809-2227');
-import('/review-history.js?v=20260809-2227');
-import('/master-layout-v3.js?v=20260809-2227');
-import('/master-leadership-summary.js?v=20260809-2227');
-import('/master-test-review.js?v=20260810-002');
-import('/review-summary-v2.js?v=20260809-2227');
-import('/review-launcher.js?v=20260809-2227');
-import('/branding/ctod-branding.js?v=20260809-2227');
-setTimeout(()=>import('/master-map-v2.js?v=20260809-2227').catch(()=>setTimeout(()=>import('/master-map-v2.js?v=20260809-2227-r2'),1200)),250);
-setTimeout(()=>import('/presentation-mode.js?v=20260809-2227'),650);
+const workspace=await window.ctodWorkspaceReady;
+await import('/exceptional-ui.js?v=20260810-004');
+await Promise.allSettled([
+  import('/talent-intelligence-v2.js?v=20260810-004'),
+  import('/employee-edit.js?v=20260810-004'),
+  import('/promotion-readiness-center.js?v=20260810-004'),
+  import('/review-career-standard.js?v=20260810-004'),
+  import('/compensation-standard.js?v=20260810-004'),
+  import('/review-history-summary.js?v=20260810-004'),
+  import('/review-history.js?v=20260810-004'),
+  import('/review-summary-v2.js?v=20260810-004'),
+  import('/review-launcher.js?v=20260810-004'),
+  import('/branding/ctod-branding.js?v=20260810-004')
+]);
+if(workspace?.isMaster){
+  await Promise.allSettled([
+    import('/system-admin.js?v=20260810-004'),
+    import('/master-layout-v3.js?v=20260810-004'),
+    import('/master-leadership-summary.js?v=20260810-004'),
+    import('/master-test-review.js?v=20260810-004'),
+    import('/master-map-v2.js?v=20260810-004'),
+    import('/presentation-mode.js?v=20260810-004')
+  ]);
+}
