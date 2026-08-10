@@ -10,6 +10,7 @@ const fmt=d=>d?new Date(d).toLocaleDateString():'';
 const today=()=>new Date().toISOString().slice(0,10);
 let membership=null,locations=[],currentReview=null,currentForm=null;
 const params=new URLSearchParams(location.search); const inviteToken=params.get('invite');
+const pendingReviewKey='ctodPendingReviewId';
 let resolveWorkspaceReady,workspaceReadyResolved=false;
 window.ctodWorkspaceReady=new Promise(resolve=>{resolveWorkspaceReady=resolve});
 
@@ -78,7 +79,7 @@ async function signin(){
 async function showApp(){
   $('#auth').hidden=true;$('#inviteSetup').hidden=true;$('#app').hidden=false;
   const u=await sb.auth.getUser();$('#who').textContent=u.data.user?.email||'';
-  await loadMembership();await loadAll();
+  await loadMembership();await loadAll();await resumePendingReview();
 }
 
 async function loadMembership(){
@@ -132,6 +133,26 @@ async function openReview(id){
   if(['not_due','queued','reopened'].includes(data.review.status)){renderStartReview(data);return}
   await renderReviewEditor(data);
 }
+
+async function openPreparedReview(id,{refresh=true}={}){
+  if(!id)throw new Error('Review ID is required.');
+  setTab('reviews');
+  if(refresh)await loadAll();
+  await openReview(id);
+}
+
+async function resumePendingReview(){
+  const id=sessionStorage.getItem(pendingReviewKey);
+  if(!id)return;
+  sessionStorage.removeItem(pendingReviewKey);
+  try{await openPreparedReview(id,{refresh:false})}
+  catch(error){
+    $('#reviewDetail').classList.remove('hide');
+    $('#reviewDetail').innerHTML='<div class="issue">Could not reopen the prepared review. Select it under Open Reviews and try again.</div>';
+  }
+}
+
+window.ctodOpenReview=openPreparedReview;
 
 function renderStartReview(f){
   $('#reviewDetail').innerHTML='<div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap"><div><h3>'+esc(f.employee.name)+'</h3><div class="meta">'+esc(f.employee.role)+' • Location '+esc(f.employee.location_code)+' • '+esc(statusLabel(f.review.status))+'</div><p><strong>Scheduled next review:</strong> '+esc(fmt(f.review.next_review_date))+'</p><p class="sub">The scheduled date is a planning date only. Managers can begin the review early when needed.</p></div><div class="actions"><button id="startCurrentReview" class="btn primary">Start Review</button><button id="quickCoach" class="btn secondary">Add Coaching Moment</button></div></div><div id="coachQuickHost"></div>';

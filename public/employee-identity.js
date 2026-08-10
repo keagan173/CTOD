@@ -19,7 +19,7 @@ await Promise.allSettled([
   import('/review-history-summary.js?v=20260810-004'),
   import('/review-history.js?v=20260810-004'),
   import('/review-summary-v2.js?v=20260810-004'),
-  import('/review-launcher.js?v=20260810-006'),
+  import('/review-launcher.js?v=20260810-007'),
   import('/branding/ctod-branding.js?v=20260810-004')
 ]);
 if(workspace?.isMaster){
