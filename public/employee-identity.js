@@ -19,6 +19,5 @@ import('/master-test-review.js?v=20260809-2012');
 import('/review-summary-v2.js?v=20260809-2012');
 import('/review-launcher.js?v=20260809-2012');
 import('/branding/ctod-branding.js?v=20260809-2012');
-await import('/pitch-mode.js?v=20260809-2012');
-import('/presentation-audio.js?v=20260809-2012');
-setTimeout(()=>import('/master-map-v2.js?v=20260809-2012'),700);
+setTimeout(()=>import('/master-map-v2.js?v=20260809-2012').catch(()=>setTimeout(()=>import('/master-map-v2.js?v=20260809-2012-r2'),1200)),250);
+setTimeout(()=>import('/presentation-mode.js?v=20260809-2012'),650);
