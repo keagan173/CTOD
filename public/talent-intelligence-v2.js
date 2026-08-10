@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { formatDate,uniqueGoals } from './display-utils.js?v=20260810-001';
 
 const SUPABASE_URL='https://wezcuprboyvbmlnuqdoi.supabase.co';
 const SUPABASE_KEY='sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5';
@@ -6,8 +7,9 @@ const sbt=createClient(SUPABASE_URL,SUPABASE_KEY);
 const $t=s=>document.querySelector(s);
 const $$t=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
-const fmt=d=>d?new Date(d).toLocaleDateString():'';
+const fmt=formatDate;
 let roster=[];
+const profileLoads=new WeakMap();
 
 function injectStyles(){
   if($t('#talentV2Styles'))return;
@@ -32,7 +34,7 @@ async function successionData(){
     sbt.from('roles').select('id,title,sort_order').eq('active',true).order('sort_order')
   ]);
   const latest={};for(const r of reviews.data||[]){if(!latest[r.employee_id]&&r.status==='finalized')latest[r.employee_id]=r}
-  return {reviews:reviews.data||[],coach:coach.data||[],goals:goals.data||[],roles:roles.data||[],latest};
+  return {reviews:reviews.data||[],coach:coach.data||[],goals:uniqueGoals(goals.data||[]),roles:roles.data||[],latest};
 }
 
 function readiness(r){const x=String(r||'').toLowerCase();if(x.includes('ready now'))return'now';if(x.includes('1 year')||x.includes('≤ 1')||x.includes('within 1'))return'year';if(x.includes('2')||x.includes('3'))return'later';return'not'}
@@ -55,14 +57,19 @@ async function renderSuccessionV2(){
 
 async function profileAddon(employeeId){
   const host=$t('#personProfile');if(!host||host.querySelector('.tv2-profile-addon'))return;
-  const [reviews,coach,goals,assign]=await Promise.all([
-    sbt.from('reviews').select('id,status,finalized_at,review_date,overall_percent,promotion_readiness,overall_rating_label').eq('employee_id',employeeId).order('finalized_at',{ascending:false}),
-    sbt.from('coaching_moments').select('id,type,category,active_carry_forward,resolved_streak,include_in_review,occurred_at').eq('employee_id',employeeId).order('occurred_at',{ascending:false}),
-    sbt.from('goals').select('id,goal_text,status,target_date,completed_at').eq('employee_id',employeeId).order('created_at',{ascending:false}),
-    sbt.from('employment_assignments').select('id,effective_from,effective_to,locations(location_code,name),roles(title)').eq('employee_id',employeeId).order('effective_from',{ascending:false})
-  ]);
-  const finals=(reviews.data||[]).filter(r=>r.status==='finalized');const latest=finals[0];const prior=finals[1];const score=Number(latest?.overall_percent||0);const delta=latest&&prior?Math.round(score-Number(prior.overall_percent||0)):null;const recognition=(coach.data||[]).filter(c=>c.type==='recognition').length;const corrective=(coach.data||[]).filter(c=>c.type==='corrective'&&c.active_carry_forward).length;const activeGoals=(goals.data||[]).filter(g=>['not_started','in_progress'].includes(g.status)).length;const completedGoals=(goals.data||[]).filter(g=>g.status==='completed').length;
-  const div=document.createElement('div');div.className='tv2-profile-addon';div.innerHTML=`<div class="tv2-section-title">Talent Trajectory</div><div class="tv2-profile-grid"><div class="tv2-stat"><small>Latest Review</small><b>${latest?Math.round(score)+'%':'—'}</b><div class="tv2-progress"><i style="width:${Math.max(0,Math.min(100,score))}%"></i></div></div><div class="tv2-stat"><small>Score Movement</small><b>${delta===null?'—':(delta>0?'+':'')+delta}</b></div><div class="tv2-stat"><small>Promotion Readiness</small><b style="font-size:14px">${esc(latest?.promotion_readiness||'Not set')}</b></div><div class="tv2-stat"><small>Recognition</small><b>${recognition}</b></div><div class="tv2-stat"><small>Open Corrective</small><b>${corrective}</b></div><div class="tv2-stat"><small>Goals</small><b>${activeGoals}</b><span style="display:block;color:#6f8ea6;font-size:9px">${completedGoals} completed</span></div></div><div class="tv2-section-title">Career Movement</div>${(assign.data||[]).slice(0,6).map(a=>`<div class="tv2-minirow"><b>${esc(a.roles?.title||'Role')}</b><span>${esc(a.locations?.location_code||'')} · ${fmt(a.effective_from)}${a.effective_to?' → '+fmt(a.effective_to):' → Current'}</span></div>`).join('')||'<div class="sub">No assignment history.</div>'}<div class="tv2-section-title">Latest Review Trend</div>${finals.slice(0,4).map(r=>`<div class="tv2-minirow"><b>${fmt(r.finalized_at||r.review_date)} · ${esc(r.overall_rating_label||'Finalized')}</b><span>${r.overall_percent==null?'—':Math.round(Number(r.overall_percent))+'%'} · ${esc(r.promotion_readiness||'')}</span></div>`).join('')||'<div class="sub">No finalized reviews yet.</div>'}`;host.appendChild(div);
+  const pending=profileLoads.get(host);if(pending?.employeeId===employeeId)return;
+  const token=Symbol(employeeId);profileLoads.set(host,{employeeId,token});
+  try{
+    const [reviews,coach,goals,assign]=await Promise.all([
+      sbt.from('reviews').select('id,status,finalized_at,review_date,overall_percent,promotion_readiness,overall_rating_label').eq('employee_id',employeeId).order('finalized_at',{ascending:false}),
+      sbt.from('coaching_moments').select('id,type,category,active_carry_forward,resolved_streak,include_in_review,occurred_at').eq('employee_id',employeeId).order('occurred_at',{ascending:false}),
+      sbt.from('goals').select('id,employee_id,goal_text,status,target_date,completed_at').eq('employee_id',employeeId).order('created_at',{ascending:false}),
+      sbt.from('employment_assignments').select('id,effective_from,effective_to,locations(location_code,name),roles(title)').eq('employee_id',employeeId).order('effective_from',{ascending:false})
+    ]);
+    if(profileLoads.get(host)?.token!==token||!host.isConnected||host.querySelector('.tv2-profile-addon'))return;
+    const goalRows=uniqueGoals(goals.data||[]),finals=(reviews.data||[]).filter(r=>r.status==='finalized');const latest=finals[0];const prior=finals[1];const score=Number(latest?.overall_percent||0);const delta=latest&&prior?Math.round(score-Number(prior.overall_percent||0)):null;const recognition=(coach.data||[]).filter(c=>c.type==='recognition').length;const corrective=(coach.data||[]).filter(c=>c.type==='corrective'&&c.active_carry_forward).length;const activeGoals=goalRows.filter(g=>['not_started','in_progress'].includes(g.status)).length;const completedGoals=goalRows.filter(g=>g.status==='completed').length;
+    const div=document.createElement('div');div.className='tv2-profile-addon';div.innerHTML=`<div class="tv2-section-title">Talent Trajectory</div><div class="tv2-profile-grid"><div class="tv2-stat"><small>Latest Review</small><b>${latest?Math.round(score)+'%':'—'}</b><div class="tv2-progress"><i style="width:${Math.max(0,Math.min(100,score))}%"></i></div></div><div class="tv2-stat"><small>Score Movement</small><b>${delta===null?'—':(delta>0?'+':'')+delta}</b></div><div class="tv2-stat"><small>Promotion Readiness</small><b style="font-size:14px">${esc(latest?.promotion_readiness||'Not set')}</b></div><div class="tv2-stat"><small>Recognition</small><b>${recognition}</b></div><div class="tv2-stat"><small>Open Corrective</small><b>${corrective}</b></div><div class="tv2-stat"><small>Goals</small><b>${activeGoals}</b><span style="display:block;color:#6f8ea6;font-size:9px">${completedGoals} completed</span></div></div><div class="tv2-section-title">Career Movement</div>${(assign.data||[]).slice(0,6).map(a=>`<div class="tv2-minirow"><b>${esc(a.roles?.title||'Role')}</b><span>${esc(a.locations?.location_code||'')} · ${fmt(a.effective_from)}${a.effective_to?' → '+fmt(a.effective_to):' → Current'}</span></div>`).join('')||'<div class="sub">No assignment history.</div>'}<div class="tv2-section-title">Latest Review Trend</div>${finals.slice(0,4).map(r=>`<div class="tv2-minirow"><b>${fmt(r.finalized_at||r.review_date)} · ${esc(r.overall_rating_label||'Finalized')}</b><span>${r.overall_percent==null?'—':Math.round(Number(r.overall_percent))+'%'} · ${esc(r.promotion_readiness||'')}</span></div>`).join('')||'<div class="sub">No finalized reviews yet.</div>'}`;host.appendChild(div);
+  }finally{if(profileLoads.get(host)?.token===token)profileLoads.delete(host)}
 }
 
 function wirePeopleAddon(){

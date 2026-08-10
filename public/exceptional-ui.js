@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { formatDate,uniqueGoals } from './display-utils.js?v=20260810-001';
 
 const SUPABASE_URL='https://wezcuprboyvbmlnuqdoi.supabase.co';
 const SUPABASE_KEY='sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5';
@@ -6,7 +7,7 @@ const sbx=createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
-const fmt=d=>d?new Date(d).toLocaleDateString():'';
+const fmt=formatDate;
 const days=d=>d?Math.ceil((new Date(d+'T23:59:59')-new Date())/86400000):9999;
 let localRoster=[];
 
@@ -49,7 +50,7 @@ async function managerSignals(){
   const soon=localRoster.filter(e=>e.scheduled_review_date&&days(e.scheduled_review_date)>0&&days(e.scheduled_review_date)<=30&&e.review_status!=='finalized');
   const corrective=(coach.data||[]).filter(c=>c.type==='corrective'&&c.active_carry_forward);
   const dev=(coach.data||[]).filter(c=>c.type==='development'&&c.active_carry_forward);
-  const activeGoals=(goals.data||[]).filter(g=>['not_started','in_progress'].includes(g.status));
+  const activeGoals=uniqueGoals(goals.data||[]).filter(g=>['not_started','in_progress'].includes(g.status));
   return {due,soon,corrective,dev,activeGoals};
 }
 
@@ -101,8 +102,8 @@ async function loadPeople360(selected=''){
 
 async function renderProfile(employeeId){
   const host=$('#personProfile'),e=localRoster.find(x=>x.employee_id===employeeId);if(!host||!e)return;host.innerHTML='<div class="sub">Loading profile...</div>';
-  const d=await employee360Data(employeeId),last=d.reviews.find(r=>r.status==='finalized'),openCoach=d.coach.filter(c=>c.active_carry_forward&&c.type!=='recognition'),activeGoals=d.goals.filter(g=>['not_started','in_progress'].includes(g.status));
-  const events=[...d.reviews.filter(r=>r.finalized_at).map(r=>({date:r.finalized_at,title:'Review finalized',sub:`${r.overall_rating_label||'Completed'}${r.promotion_readiness?' · '+r.promotion_readiness:''}`})),...d.coach.map(c=>({date:c.occurred_at,title:`${String(c.type).replaceAll('_',' ')} coaching`,sub:c.category})),...d.goals.map(g=>({date:g.completed_at||g.target_date,title:`Goal · ${String(g.status).replaceAll('_',' ')}`,sub:g.goal_text}))].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,12);
+  const d=await employee360Data(employeeId),goals=uniqueGoals(d.goals),last=d.reviews.find(r=>r.status==='finalized'),openCoach=d.coach.filter(c=>c.active_carry_forward&&c.type!=='recognition'),activeGoals=goals.filter(g=>['not_started','in_progress'].includes(g.status));
+  const events=[...d.reviews.filter(r=>r.finalized_at).map(r=>({date:r.finalized_at,title:'Review finalized',sub:`${r.overall_rating_label||'Completed'}${r.promotion_readiness?' · '+r.promotion_readiness:''}`})),...d.coach.map(c=>({date:c.occurred_at,title:`${String(c.type).replaceAll('_',' ')} coaching`,sub:c.category})),...goals.map(g=>({date:g.completed_at||g.target_date,title:`Goal · ${String(g.status).replaceAll('_',' ')}`,sub:g.goal_text}))].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,12);
   host.innerHTML=`<div class="profile-head"><div><div class="profile-number">EMPLOYEE #${esc(e.employee_code||'------')}</div><div class="profile-name">${esc(e.first_name)} ${esc(e.last_name)}</div><div class="profile-role">${esc(e.role_title)} · Location ${esc(e.location_code)}</div></div><button class="x-action" id="profileCoach">+ Coaching</button></div><div class="profile-kpis"><div class="profile-kpi"><small>Last Rating</small><b>${esc(last?.overall_rating_label||'—')}</b></div><div class="profile-kpi"><small>Readiness</small><b>${esc(last?.promotion_readiness||'Not set')}</b></div><div class="profile-kpi"><small>Open Coaching</small><b>${openCoach.length}</b></div><div class="profile-kpi"><small>Active Goals</small><b>${activeGoals.length}</b></div></div><div class="grid2"><div><h4>Career / Location History</h4>${d.assign.map(a=>`<div class="history-row"><strong>${esc(a.roles?.title||e.role_title)}</strong><div class="sub">Location ${esc(a.locations?.location_code||'')} · ${fmt(a.effective_from)}${a.effective_to?' – '+fmt(a.effective_to):' – Current'}</div></div>`).join('')||'<div class="sub">No assignment history.</div>'}</div><div><h4>Activity Timeline</h4><div class="timeline">${events.map(x=>`<div class="timeline-item"><b>${esc(x.title)}</b><span>${esc(x.sub||'')} · ${fmt(x.date)}</span></div>`).join('')||'<div class="sub">No activity yet.</div>'}</div></div></div>`;
   $('#profileCoach').onclick=()=>{jump('coaching');setTimeout(()=>{const sel=$('#coachEmployee');if(sel){sel.value=employeeId;sel.dispatchEvent(new Event('change'))}},250)};
 }
@@ -115,7 +116,7 @@ async function loadSuccession(){
 async function companyData(){
  const [loc,emp,assign,reviews,coach,goals,promo,roles]=await Promise.all([
   sbx.from('locations').select('id,location_code,name,city,state_code,market_name,area_name,status').eq('status','active'),sbx.from('employees').select('id,employee_code,first_name,last_name,employment_status').eq('employment_status','active'),sbx.from('employment_assignments').select('employee_id,location_id,role_id,effective_from,effective_to').is('effective_to',null),sbx.from('reviews').select('id,employee_id,location_id,status,scheduled_review_date,finalized_at,overall_rating_label,promotion_readiness').order('created_at',{ascending:false}),sbx.from('coaching_moments').select('id,employee_id,type,category,active_carry_forward,resolved_streak,occurred_at'),sbx.from('goals').select('id,employee_id,status,target_date,goal_text'),sbx.from('v_promotion_readiness').select('*'),sbx.from('roles').select('id,title')]);
- return {loc:loc.data||[],emp:emp.data||[],assign:assign.data||[],reviews:reviews.data||[],coach:coach.data||[],goals:goals.data||[],promo:promo.data||[],roles:roles.data||[]};
+ return {loc:loc.data||[],emp:emp.data||[],assign:assign.data||[],reviews:reviews.data||[],coach:coach.data||[],goals:uniqueGoals(goals.data||[]),promo:promo.data||[],roles:roles.data||[]};
 }
 
 function locationBundle(d,code){const loc=d.loc.find(l=>String(l.location_code).padStart(3,'0')===String(code).replace(/\D/g,'').padStart(3,'0'));if(!loc)return null;const ids=d.assign.filter(a=>a.location_id===loc.id).map(a=>a.employee_id),people=d.emp.filter(e=>ids.includes(e.id)),reviews=d.reviews.filter(r=>r.location_id===loc.id),coach=d.coach.filter(c=>ids.includes(c.employee_id)),goals=d.goals.filter(g=>ids.includes(g.employee_id));return {loc,ids,people,reviews,coach,goals}}

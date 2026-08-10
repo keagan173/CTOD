@@ -9,16 +9,16 @@ function hardenEmployeeIdentityUI(){
 document.addEventListener('click',e=>{const btn=e.target.closest('#empAdd');if(!btn)return;const input=document.querySelector('#empCode');if(!input||sixDigit.test(input.value.trim()))return;e.preventDefault();e.stopImmediatePropagation();const msg=document.querySelector('#empMsg');if(msg)msg.textContent='Employee number must be exactly 6 digits.';input.focus()},{capture:true});
 new MutationObserver(hardenEmployeeIdentityUI).observe(document.documentElement,{childList:true,subtree:true});hardenEmployeeIdentityUI();
 const workspace=await window.ctodWorkspaceReady;
-await import('/exceptional-ui.js?v=20260810-004');
+await import('/exceptional-ui.js?v=20260810-005');
 await Promise.allSettled([
-  import('/talent-intelligence-v2.js?v=20260810-004'),
+  import('/talent-intelligence-v2.js?v=20260810-005'),
   import('/employee-edit.js?v=20260810-004'),
   import('/promotion-readiness-center.js?v=20260810-004'),
-  import('/review-career-standard.js?v=20260810-004'),
+  import('/review-career-standard.js?v=20260810-005'),
   import('/compensation-standard.js?v=20260810-005'),
-  import('/review-history-summary.js?v=20260810-004'),
-  import('/review-history.js?v=20260810-004'),
-  import('/review-summary-v2.js?v=20260810-004'),
+  import('/review-history-summary.js?v=20260810-005'),
+  import('/review-history.js?v=20260810-005'),
+  import('/review-summary-v2.js?v=20260810-005'),
   import('/review-launcher.js?v=20260810-007'),
   import('/branding/ctod-branding.js?v=20260810-004')
 ]);

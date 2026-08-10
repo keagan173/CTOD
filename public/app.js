@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { formatDate,uniqueGoals } from './display-utils.js?v=20260810-001';
 
 const SUPABASE_URL='https://wezcuprboyvbmlnuqdoi.supabase.co';
 const SUPABASE_KEY='sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5';
@@ -6,7 +7,7 @@ const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
 window.ctodSupabase=sb;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
-const fmt=d=>d?new Date(d).toLocaleDateString():'';
+const fmt=formatDate;
 const today=()=>new Date().toISOString().slice(0,10);
 let membership=null,locations=[],currentReview=null,currentForm=null;
 const params=new URLSearchParams(location.search); const inviteToken=params.get('invite');
@@ -98,12 +99,12 @@ async function loadAll(){
   const [reviews,coach,goals,promo]=await Promise.all([
     sb.from('reviews').select('id,employee_id,status,review_date,next_review_date,finalized_at,overall_rating_label,promotion_readiness,raise_recommendation,employees!reviews_employee_id_fkey(first_name,last_name),locations(name,location_code)').order('updated_at',{ascending:false}),
     sb.from('coaching_moments').select('id',{count:'exact',head:true}).eq('active_carry_forward',true),
-    sb.from('goals').select('id',{count:'exact',head:true}).in('status',['not_started','in_progress']),
+    sb.from('goals').select('id,employee_id,goal_text,status,target_date').in('status',['not_started','in_progress']),
     sb.from('v_promotion_readiness').select('*').order('readiness_score',{ascending:false})
   ]);
   if(reviews.error){$('#openReviews').innerHTML='<div class="issue">'+esc(reviews.error.message)+'</div>';return}
   const rows=reviews.data||[];const open=rows.filter(x=>x.status!=='finalized'),done=rows.filter(x=>x.status==='finalized');
-  $('#kOpen').textContent=open.length;$('#kFinal').textContent=done.length;$('#kCoach').textContent=coach.count||0;$('#kGoals').textContent=goals.count||0;
+  $('#kOpen').textContent=open.length;$('#kFinal').textContent=done.length;$('#kCoach').textContent=coach.count||0;$('#kGoals').textContent=uniqueGoals(goals.data||[]).length;
   renderReviews(open,$('#openReviews'));renderReviews(done,$('#doneReviews'));renderReviews(done,$('#masterReviews'));renderMaster(promo.data||[]);
   if(['owner','admin'].includes(membership?.role)) await loadAccess();
 }
