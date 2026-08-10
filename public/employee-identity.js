@@ -15,7 +15,7 @@ await Promise.allSettled([
   import('/employee-edit.js?v=20260810-004'),
   import('/promotion-readiness-center.js?v=20260810-004'),
   import('/review-career-standard.js?v=20260810-004'),
-  import('/compensation-standard.js?v=20260810-004'),
+  import('/compensation-standard.js?v=20260810-005'),
   import('/review-history-summary.js?v=20260810-004'),
   import('/review-history.js?v=20260810-004'),
   import('/review-summary-v2.js?v=20260810-004'),

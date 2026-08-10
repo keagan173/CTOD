@@ -56,15 +56,22 @@ async function renderCoachingEmployee(employeeId){
   type.onchange=syncDefaults;
   cat.onchange=()=>{if(cat.value==='Minor Documentation')include.checked=false};
   syncDefaults();
-  $m('#mcSave').onclick=async()=>{
+  const saveButton=$m('#mcSave');let saving=false;
+  saveButton.onclick=async()=>{
+    if(saving)return;
     const category=cat.value,notes=$m('#mcNotes').value.trim(),includeInReview=include.checked;
     if(!category||!notes){$m('#mcMsg').textContent='Choose a category and enter notes.';return}
-    const u=(await sbm.auth.getUser()).data.user;
-    const coachingType=type.value;
-    const carryForward=includeInReview&&coachingType!=='recognition';
-    const ins=await sbm.from('coaching_moments').insert({company_id:membershipM.company_id,employee_id:employeeId,created_by_user_id:u.id,occurred_at:new Date().toISOString(),type:coachingType,category,notes,expected_outcome:$m('#mcOutcome').value.trim()||null,include_in_review:includeInReview,record_status:'active',resolved_streak:0,active_carry_forward:carryForward});
-    if(ins.error){$m('#mcMsg').textContent=ins.error.message;return}
-    $m('#mcMsg').textContent='Saved with date & time.';$m('#mcNotes').value='';$m('#mcOutcome').value='';syncDefaults();await loadCoachingHistory(employeeId)
+    saving=true;saveButton.disabled=true;saveButton.textContent='Saving...';
+    try{
+      const u=(await sbm.auth.getUser()).data.user;
+      const coachingType=type.value;
+      const carryForward=includeInReview&&coachingType!=='recognition';
+      const ins=await sbm.from('coaching_moments').insert({company_id:membershipM.company_id,employee_id:employeeId,created_by_user_id:u.id,occurred_at:new Date().toISOString(),type:coachingType,category,notes,expected_outcome:$m('#mcOutcome').value.trim()||null,include_in_review:includeInReview,record_status:'active',resolved_streak:0,active_carry_forward:carryForward});
+      if(ins.error){$m('#mcMsg').textContent=ins.error.message;return}
+      $m('#mcMsg').textContent='Saved with date & time.';$m('#mcNotes').value='';$m('#mcOutcome').value='';syncDefaults();await loadCoachingHistory(employeeId)
+    }finally{
+      saving=false;saveButton.disabled=false;saveButton.textContent='Save Coaching Moment';
+    }
   };
   await loadCoachingHistory(employeeId);
 }
