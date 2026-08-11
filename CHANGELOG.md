@@ -2,6 +2,40 @@
 
 This changelog records accepted CTOD production and repository releases. GitHub `main` remains the application source of truth, and versioned Supabase migrations remain the database source of truth.
 
+## 1.1.0 — 2026-08-11 (sandbox candidate)
+
+### Added
+
+- A fully separate Supabase database/Auth project for CTOD Sandbox (`zgwkjyezpgboysiklodj`).
+- Reproducible schema and safe configuration baselines for new environments, deliberately outside production migrations.
+- Guarded sandbox bootstrap, reset, seed, and verification SQL.
+- One Sandbox Master Auth account and three deterministic fake Location 040 employees.
+- Central environment-aware browser configuration with one Supabase client, separate session storage, feature flags, and an unmistakable fake-data banner.
+- A separate `ctod-sandbox` Vercel project with preview and production-target sandbox artifacts.
+- CI checks for source syntax, JSON, environment neutrality, production build identity, sandbox isolation, and refusal of a production-backed sandbox build.
+- A server-side, one-time sandbox user bootstrap script that refuses production and existing Auth/membership state.
+- Sandbox architecture, recreation, reset, verification, and zero-production-impact documentation.
+
+### Hardened
+
+- Sandbox build and runtime project-ref guards reject the production Supabase project.
+- Browser builds accept publishable keys only.
+- Invitation sending and acceptance both enforce the sandbox email allowlist and fail closed when server configuration is missing.
+- Supabase client imports are pinned to version 2.112.2.
+- The one-time administrative Edge Function was replaced with a permanent HTTP 410 implementation after the account was created.
+
+### Verified
+
+- Real password Auth returned HTTP 200 for the Sandbox Master account.
+- User context returned `owner` and `is_master: true`; the workspace roster returned exactly three fake employees.
+- A disposable fourth employee was removed by reset, while Auth/profile/membership/bootstrap state survived and the three-person seed was restored.
+- Supabase security advisors reported no errors and the same inherited warning profile as production.
+- Production observed counts were unchanged during sandbox work.
+
+### Deployment note
+
+- The connected Vercel team protects the sandbox aliases with Vercel Authentication. Protection was retained; an unauthenticated deployed-UI pass and public fallback upload are intentionally not claimed.
+
 ## 1.0.1 — 2026-08-11
 
 ### Added

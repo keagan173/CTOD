@@ -1,5 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-const rl=window.ctodSupabase||createClient('https://wezcuprboyvbmlnuqdoi.supabase.co','sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5');
+import { ctodSupabase as rl } from './ctod-config.js';
 const $=s=>document.querySelector(s);const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 let rows=[],installing=false,refreshing=false,launching=false;
 async function roster(){if(window.ctodWorkspaceReady)await window.ctodWorkspaceReady;const session=await rl.auth.getSession();if(session.error)throw session.error;if(!session.data.session)throw new Error('CTOD session is not ready.');const r=await rl.rpc('manager_workspace_employees');if(r.error)throw r.error;rows=r.data||[];return rows}

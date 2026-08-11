@@ -1,5 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-const prc=createClient('https://wezcuprboyvbmlnuqdoi.supabase.co','sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5');
+import { ctodSupabase as prc } from './ctod-config.js';
 const $p=s=>document.querySelector(s), escp=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 let roleCache=null,careerSaveBusy=false,pipelineRows=[];
 const CAREER_DIRECTIONS=[['ADVANCEMENT','Advancement / another position'],['CURRENT_ROLE','Satisfied in current position'],['SPECIALIST','Specialist / technical career path'],['EXPLORING','Still exploring career direction']];

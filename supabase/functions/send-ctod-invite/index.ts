@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "jsr:@supabase/supabase-js@2.112.2";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +9,37 @@ const cors = {
 
 const DEFAULT_APP_URL = "https://ctod.vercel.app/";
 const DEFAULT_FROM = "CTOD <invites@ctodsystem.com>";
+const DEFAULT_PRODUCTION_PROJECT_REF = "wezcuprboyvbmlnuqdoi";
+
+function currentProjectRef() {
+  const url = new URL(Deno.env.get("SUPABASE_URL") || "https://invalid.supabase.co");
+  return url.hostname.match(/^([a-z0-9-]+)\.supabase\.co$/i)?.[1] || "";
+}
+
+function ctodEnvironment() {
+  const configured = String(Deno.env.get("CTOD_ENVIRONMENT") || "").trim().toLowerCase();
+  if (configured && !["production", "sandbox"].includes(configured)) {
+    throw new Error("CTOD_ENVIRONMENT must be production or sandbox");
+  }
+  if (configured) return configured;
+  const productionRef = Deno.env.get("CTOD_PRODUCTION_PROJECT_REF") || DEFAULT_PRODUCTION_PROJECT_REF;
+  return currentProjectRef() === productionRef ? "production" : "sandbox";
+}
+
+function assertSandboxEmailAllowed(email: string) {
+  if (ctodEnvironment() !== "sandbox") return;
+  const allowed = String(Deno.env.get("CTOD_EMAIL_ALLOWLIST") || "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  if (!allowed.includes(email.trim().toLowerCase())) {
+    throw new Error(
+      allowed.length
+        ? "Sandbox email blocked. Use an approved test address."
+        : "Sandbox email delivery is disabled until CTOD_EMAIL_ALLOWLIST is configured.",
+    );
+  }
+}
 
 function escapeHtml(value: unknown) {
   return String(value ?? "")
@@ -26,7 +57,9 @@ function humanizeRole(value: unknown) {
 }
 
 function buildInviteUrl(token: string) {
-  const configured = Deno.env.get("CTOD_APP_URL") || DEFAULT_APP_URL;
+  const configured =
+    Deno.env.get("CTOD_APP_URL") || (ctodEnvironment() === "production" ? DEFAULT_APP_URL : "");
+  if (!configured) throw new Error("Sandbox invitation URL is not configured");
   const appUrl = new URL(configured);
   if (appUrl.protocol !== "https:") throw new Error("CTOD_APP_URL must use HTTPS");
   appUrl.pathname = "/";
@@ -59,7 +92,7 @@ function buildInviteEmail({
   const safeUrl = escapeHtml(inviteUrl);
 
   return {
-    subject: `Your CTOD ${roleLabel} invitation${subjectLocation}`,
+    subject: `${ctodEnvironment() === "sandbox" ? "[CTOD SANDBOX] " : ""}Your CTOD ${roleLabel} invitation${subjectLocation}`,
     text: [
       "You have been invited to CTOD.",
       "",
@@ -211,6 +244,7 @@ Deno.serve(async (req: Request) => {
     if (locErr) throw locErr;
 
     const normalized = String(inv.email).trim().toLowerCase();
+    assertSandboxEmailAllowed(normalized);
     const inviteUrl = buildInviteUrl(String(inv.token));
     const locationLabels = (locs || []).map((row: any) => {
       const location = Array.isArray(row.locations) ? row.locations[0] : row.locations;

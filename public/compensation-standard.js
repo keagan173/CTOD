@@ -1,5 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-const csb=createClient('https://wezcuprboyvbmlnuqdoi.supabase.co','sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5');
+import { ctodSupabase as csb } from './ctod-config.js';
 const $c=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 const REASONS=[['PERFORMANCE','Performance'],['PROMOTION','Promotion / added responsibility'],['MARKET','Market adjustment'],['COST_OF_LIVING','Cost of living'],['TENURE','Tenure / experience'],['RETENTION','Retention'],['EQUITY','Internal equity'],['OTHER','Other']];
 const EMP_TIMING=[['IMMEDIATE','Immediately'],['NEXT_PAY_PERIOD','Next pay period'],['NEXT_REVIEW','Next review'],['SPECIFIC_DATE','Specific date'],['FLEXIBLE','Flexible / manager discretion']];

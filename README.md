@@ -24,6 +24,14 @@ This repository is the permanent source of truth for the CTOD application.
 
 The prior Vercel URL remains the temporary application endpoint until the production domain is connected.
 
+## Isolated Sandbox
+
+The persistent CTOD Sandbox uses a separate Supabase database/Auth tenant and a separate Vercel project. It has one owner login and three fake employee records; employees themselves never log in. Environment guards refuse a sandbox build pointed at production, and every sandbox page displays an unmistakable fake-data banner.
+
+- [Sandbox architecture, reset, and verification record](docs/SANDBOX_ARCHITECTURE.md)
+- Sandbox Supabase ref: `zgwkjyezpgboysiklodj`
+- Protected Vercel alias: `https://ctod-sandbox-keaganelsberry-4694s-projects.vercel.app`
+
 ## Required User Experience
 
 ### Owner / Master
@@ -117,8 +125,11 @@ Completed / established:
 - date-only rendering, goal deduplication, Review History, and Talent Trajectory reporting repaired
 - compensation, manager summary, and employee comments restored to finalized review reporting
 - one future review is created after finalization without duplicating the active review
-- isolated fake QA evidence retained pending deliberate cleanup approval
+- isolated fake QA evidence removed after the acceptance record was preserved
 - `ctodsystem.com` purchased and Resend configured for CTOD invitations
+- isolated CTOD Sandbox Supabase project, Auth tenant, schema baseline, safe configuration seed, reset/seed procedure, and one Sandbox Master login established
+- separate `ctod-sandbox` Vercel project deployed with team authentication protection
+- production/sandbox runtime configuration centralized with build-time and browser-time project-ref guards
 
 ### Validated production release
 
@@ -128,9 +139,9 @@ The current production acceptance record, locked decisions, data state, and hand
 - [Current project handoff](docs/CURRENT_HANDOFF.md)
 - [Changelog](CHANGELOG.md)
 
-The validated application release is GitHub commit `4ab3f45`. The isolated QA lifecycle currently contains two finalized reviews, one future review, zero active coaching items, and one active goal for `QA TEST · 990040`.
+The historical review-lifecycle acceptance release is GitHub commit `4ab3f45`. Its isolated fake QA employee and dependent operational evidence were subsequently removed. The observed production baseline at the start and end of sandbox work contains zero employees, assignments, reviews, answers, coaching moments, and goals. Production Auth (3 users), locations (55), and audit events (13) remained unchanged.
 
-The next controlled step is to decide whether to retain or remove that exact fake QA evidence, confirm the resulting baseline, and then onboard the first real Location 040 employee. Cleanup must be narrowly targeted; legitimate employee history is never bulk-deleted.
+The sandbox candidate is version 1.1.0 on branch `agent/ctod-sandbox`. The next controlled step is review of that branch and a decision about Vercel deployment protection. No sandbox database script is applied to production, and production publishing remains a separate GitHub `main` approval.
 
 ## Engineering Rules
 
@@ -144,5 +155,6 @@ The next controlled step is to decide whether to retain or remove that exact fak
 8. Location access belongs to roles/users, while employee history remains attached to the permanent six-digit employee identity.
 9. Finalized reviews are read-only records.
 10. Production secrets and API keys must never be committed to GitHub.
+11. Employee roster records are not login identities; only explicitly provisioned users belong in Supabase Auth.
 
 Baseline updated: 2026-08-11.

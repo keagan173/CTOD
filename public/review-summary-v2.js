@@ -1,6 +1,5 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { ctodSupabase as sbSummary } from './ctod-config.js';
 import { calendarDateKey,formatDate,uniqueGoals } from './display-utils.js?v=20260810-001';
-const sbSummary=createClient('https://wezcuprboyvbmlnuqdoi.supabase.co','sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5');
 const escS=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 const fmtS=formatDate;
 const clean=s=>String(s||'').trim();
