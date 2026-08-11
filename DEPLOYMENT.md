@@ -33,6 +33,9 @@ Manual `vercel deploy` releases are not the production release process and must 
 4. A release is not accepted until the live application is smoke-tested.
 5. Rollback is performed by promoting/redeploying a known-good Git-backed deployment or reverting the Git commit, never by reconstructing source from a deployed artifact.
 6. Production secrets remain in Supabase/Vercel/Resend configuration and are never stored in the repository.
+7. Releases that change the database contract apply versioned Supabase migrations before the dependent frontend commit is published.
+8. Database releases are not accepted until post-migration data checks and the Supabase security advisor confirm that RLS-safe view/function behavior remains intact.
+9. Corrective production migrations must be committed beside the original migration so source control and live database history remain aligned.
 
 ## Foundation smoke test
 
@@ -58,6 +61,14 @@ Every foundation release must validate:
 - Schema changes must be versioned and documented before multi-location rollout.
 - GitHub remains the only source of application truth.
 
-## Current milestone
+## Current milestone — 2026-08-11
 
-Foundation milestone: establish a repeatable Git-backed Vercel production pipeline, confirm Access Management in production, then execute the true Location 040 invitation acceptance test before adding larger feature modules.
+Validated review-lifecycle milestone:
+
+- Production application release `4ab3f45` deployed successfully from GitHub `main`.
+- The QA Location 040 manager completed the isolated employee's two-cycle review lifecycle.
+- Review reopening, draft persistence, finalization, next-review creation, finalized scoring, promotion readiness, two-cycle coaching resolution, Employee 360, Review History, and talent reporting passed.
+- The two-page summary builder contains performance, career, goals, coaching, compensation, manager summary, and employee comments. Native browser printing remains a required spot check with the first real employee because the temporary print frame closes after the browser print action.
+- Production retains the isolated fake QA employee and its evidence until an explicit, narrowly scoped cleanup decision is made.
+
+The next release gate is cleanup of only the fake QA identity if approved, followed by controlled onboarding of the first real Location 040 employee.

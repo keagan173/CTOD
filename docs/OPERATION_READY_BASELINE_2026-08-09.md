@@ -1,5 +1,7 @@
 # CTOD Operation-Ready Baseline — 2026-08-09
 
+Historical baseline. Superseded by the [validated production QA release dated 2026-08-11](PRODUCTION_QA_RELEASE_2026-08-11.md).
+
 This document records the production baseline immediately before the first real Location 040 employee rollout.
 
 ## Production state

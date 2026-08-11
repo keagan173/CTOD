@@ -1,5 +1,7 @@
 # CTOD LOC 040 Pre-Live QA
 
+Historical pre-live record. Superseded by the [validated production QA release dated 2026-08-11](PRODUCTION_QA_RELEASE_2026-08-11.md).
+
 Date: 2026-08-09
 Status: READY FOR MANUAL PILOT VALIDATION
 

@@ -89,7 +89,7 @@ Existing users must be reassigned without creating a second account. Access chan
 - finalized reviews automatically update Master reporting and talent pipeline
 - finalized review history follows the employee's six-digit identity across location transfers
 
-## Current Rollout Status - 2026-08-09
+## Current Rollout Status - 2026-08-11
 
 Completed / established:
 
@@ -109,16 +109,28 @@ Completed / established:
 - career-direction workflow standardized across every job role
 - compensation workflow standardized and structured
 - question-specific review reasons built across all active questions and all five rating bands
-- production test employee/review data cleared in preparation for real Location 040 rollout
+- authenticated Reviews roster loading and direct review reopening verified in production
+- two consecutive review cycles completed for the isolated Location 040 QA employee
+- coaching carry-forward verified at 1 of 2 after cycle one and closed at 2 of 2 after cycle two
+- finalized review intelligence verified at 3.00 / 60% / Meets Expectations
+- promotion readiness verified as Ready in 1 Year
+- date-only rendering, goal deduplication, Review History, and Talent Trajectory reporting repaired
+- compensation, manager summary, and employee comments restored to finalized review reporting
+- one future review is created after finalization without duplicating the active review
+- isolated fake QA evidence retained pending deliberate cleanup approval
 - `ctodsystem.com` purchased and Resend configured for CTOD invitations
 
-### Operation-ready baseline
+### Validated production release
 
-The current production baseline is documented in:
+The current production acceptance record, locked decisions, data state, and handoff are documented in:
 
-`docs/OPERATION_READY_BASELINE_2026-08-09.md`
+- [Production QA release — 2026-08-11](docs/PRODUCTION_QA_RELEASE_2026-08-11.md)
+- [Current project handoff](docs/CURRENT_HANDOFF.md)
+- [Changelog](CHANGELOG.md)
 
-The next step is a manual human acceptance test using the first real Location 040 employee. The review should be completed end-to-end, then verified in Master, Review History, read-only finalized view, and the two-page summary before loading the remainder of the location roster.
+The validated application release is GitHub commit `4ab3f45`. The isolated QA lifecycle currently contains two finalized reviews, one future review, zero active coaching items, and one active goal for `QA TEST · 990040`.
+
+The next controlled step is to decide whether to retain or remove that exact fake QA evidence, confirm the resulting baseline, and then onboard the first real Location 040 employee. Cleanup must be narrowly targeted; legitimate employee history is never bulk-deleted.
 
 ## Engineering Rules
 
@@ -133,4 +145,4 @@ The next step is a manual human acceptance test using the first real Location 04
 9. Finalized reviews are read-only records.
 10. Production secrets and API keys must never be committed to GitHub.
 
-Baseline updated: 2026-08-09.
+Baseline updated: 2026-08-11.
