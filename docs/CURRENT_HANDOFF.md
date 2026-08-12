@@ -1,19 +1,23 @@
 # CTOD Current Project Handoff
 
-Updated: 2026-08-11
+Updated: 2026-08-12
 
 ## Current state
 
 - Production source remained on GitHub `main`; the observed starting commit was `c320fbd`.
 - Production Supabase was read-only during sandbox construction.
 - Production ended with the same observed baseline: Auth 3, locations 55, employees 0, assignments 0, reviews 0, answers 0, coaching moments 0, goals 0, and audit events 13.
-- Repository candidate version is 1.1.0 on `agent/ctod-sandbox`.
+- Repository candidate version is 1.1.0 on `agent/ctod-operator-control-plane`.
 - The isolated Supabase project is `CTOD Sandbox` / `zgwkjyezpgboysiklodj`.
 - The isolated Vercel project is `ctod-sandbox`.
-- The sandbox has one owner login and three fake Location 040 employee records. Employees are records only and never log in.
+- The sandbox has one Commercial Tire owner login, one independent platform-operator login, three fake Location 040 employee records, and one customer-neutral operator acceptance tenant. Employees are records only and never log in.
+- The platform operator has zero company memberships. The Sandbox Master remains a customer owner and is not a platform operator.
+- The Operator Control Plane provides customer provisioning, lifecycle, aggregate diagnostics, operations metadata, release assignment, access-account support, and operator-account administration.
+- Customer suspension/restore passed with one exact owner membership held and restored; customer configuration access was empty while suspended and returned after reactivation.
+- Operator diagnostics exposed aggregate counts and the owner account email/role only; no employee identity or review-content fields were returned.
 - The reset/reseed transaction was proven with a disposable fourth employee; it preserved Auth, profile, membership, role, and bootstrap audit marker.
 - Real sandbox Auth sign-in succeeded, `my_ctod_context` returned `owner` / `is_master: true`, and the manager roster RPC returned exactly three employees.
-- Supabase advisors reported no errors and the same 29 inherited security warnings as production.
+- Supabase advisors reported no control-plane security finding. The 29 inherited security warnings remain; all new control-plane foreign-key index findings were resolved.
 
 ## Hosting gate
 
@@ -31,11 +35,11 @@ An official claimable/public fallback was considered but not used because it wou
 
 ## Exact next action
 
-1. Review the `agent/ctod-sandbox` pull request/candidate without merging automatically.
-2. Decide whether the `ctod-sandbox` project should remain Vercel-authenticated or be made accessible to a named tester.
-3. If protected, grant that tester Vercel access; then use the separately delivered Sandbox Master credential.
-4. Run one visual login/review pass on the deployed alias.
-5. Merge only the application infrastructure after review. Never apply the baseline/reset/seed files to production.
+1. Review the `agent/ctod-operator-control-plane` draft pull request without merging automatically.
+2. Verify the protected sandbox deployment with the separately delivered Sandbox Operator credential.
+3. Exercise customer search, diagnostics, and the retained `CTOD Operator Acceptance Co` lifecycle from the deployed console.
+4. Decide whether the protected sandbox should be shared with additional named testers.
+5. Plan production migration/operator bootstrap as a separate release; do not apply sandbox acceptance identities or data to production.
 
 ## Release guardrails
 

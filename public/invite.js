@@ -16,7 +16,7 @@ async function validateInvite(){
       return;
     }
     if(!data.active){
-      $('#inviteMsg').textContent=data.accepted?'This invitation has already been activated.':data.expired?'This invitation has expired.':data.revoked?'This invitation was revoked.':'Invite is no longer active.';
+      $('#inviteMsg').textContent=data.inactive_reason||(data.accepted?'This invitation has already been activated.':data.expired?'This invitation has expired.':data.revoked?'This invitation was revoked.':'Invite is no longer active.');
       return;
     }
     $('#inviteEmail').textContent=data.email+' • '+String(data.role||'').replaceAll('_',' ');

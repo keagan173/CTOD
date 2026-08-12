@@ -2,6 +2,12 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.112.2";
 
 const DEFAULT_PRODUCTION_PROJECT_REF = "wezcuprboyvbmlnuqdoi";
+const CTOD_SANDBOX_PROJECT_REF = "zgwkjyezpgboysiklodj";
+const BUILT_IN_SANDBOX_EMAILS = new Set([
+  "sandbox-master@ctod.test",
+  "sandbox-operator@ctod.test",
+  "sandbox-customer-owner@ctod.test",
+]);
 const url = Deno.env.get("SUPABASE_URL")!;
 const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const admin = createClient(url, service, {
@@ -34,11 +40,14 @@ function ctodEnvironment() {
 
 function assertSandboxEmailAllowed(email: string) {
   if (ctodEnvironment() !== "sandbox") return;
+  const normalized = email.trim().toLowerCase();
   const allowed = String(Deno.env.get("CTOD_EMAIL_ALLOWLIST") || "")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
-  if (!allowed.includes(email.trim().toLowerCase())) {
+  const builtInAllowed =
+    currentProjectRef() === CTOD_SANDBOX_PROJECT_REF && BUILT_IN_SANDBOX_EMAILS.has(normalized);
+  if (!allowed.includes(normalized) && !builtInAllowed) {
     throw new Error(
       allowed.length
         ? "Sandbox account creation blocked. Use an approved test address."
@@ -55,21 +64,30 @@ Deno.serve(async (req: Request) => {
       if (!token) return json({ ok: false, error: "Invite token required" }, 400);
       const { data: inv, error } = await admin
         .from("access_invites")
-        .select("email,intended_role,accepted_at,revoked_at,expires_at")
+        .select("company_id,email,intended_role,accepted_at,revoked_at,expires_at")
         .eq("token", token)
         .maybeSingle();
       if (error) throw error;
       if (!inv) return json({ ok: false, error: "Invite is invalid" }, 404);
       assertSandboxEmailAllowed(String(inv.email));
+      const { data: company, error: companyError } = await admin
+        .from("companies")
+        .select("status")
+        .eq("id", inv.company_id)
+        .single();
+      if (companyError || !company) throw new Error("Customer not found");
       const expired = new Date(inv.expires_at) <= new Date();
+      const customerActive = company.status === "active";
       return json({
         ok: true,
         email: inv.email,
         role: inv.intended_role,
-        active: !inv.accepted_at && !inv.revoked_at && !expired,
+        active: customerActive && !inv.accepted_at && !inv.revoked_at && !expired,
         accepted: !!inv.accepted_at,
         revoked: !!inv.revoked_at,
         expired,
+        customer_active: customerActive,
+        inactive_reason: customerActive ? null : "Customer access is suspended",
         expires_at: inv.expires_at,
       });
     }
@@ -88,6 +106,14 @@ Deno.serve(async (req: Request) => {
     if (!inv || inv.accepted_at || inv.revoked_at || new Date(inv.expires_at) <= new Date()) {
       throw new Error("Invite is invalid or expired");
     }
+
+    const { data: company, error: companyError } = await admin
+      .from("companies")
+      .select("status")
+      .eq("id", inv.company_id)
+      .single();
+    if (companyError || !company) throw new Error("Customer not found");
+    if (company.status !== "active") throw new Error("Customer access is suspended");
 
     const email = String(inv.email).trim().toLowerCase();
     assertSandboxEmailAllowed(email);

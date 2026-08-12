@@ -58,6 +58,10 @@ The sandbox is not a production release fallback. It has its own resources:
 
 The Vercel team currently protects the sandbox aliases with Vercel Authentication. That protection was preserved. A change to public accessibility requires an explicit project-owner decision; it does not justify changing the production `ctod` project or uploading the build to an unrelated host.
 
+The sandbox also hosts the CTOD Operator Control Plane. The browser route is selected only after the authenticated `ctod-operator-admin` Edge Function confirms an active private platform-operator identity. Operator identities must have zero customer memberships. The Edge Function, invitation functions, and operator migrations must be deployed and accepted against the sandbox Supabase project before the dependent sandbox web artifact is published.
+
+Production promotion of the operator layer requires a separate release decision covering, in order: production migration review, operator identity bootstrap, Edge Function deployment, frontend merge through GitHub `main`, and a post-deploy privacy/lifecycle acceptance pass. A sandbox control-plane deployment is never promoted directly to the production project.
+
 ## Foundation smoke test
 
 Every foundation release must validate:

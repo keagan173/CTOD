@@ -5,6 +5,10 @@
   "supabasePublishableKey": "sb_publishable_sWjR6yZoedl3q2vYzvRtRg_Pw1Jtuu7",
   "productionProjectRef": "wezcuprboyvbmlnuqdoi",
   "sandboxProjectRef": "zgwkjyezpgboysiklodj",
-  "emailAllowlist": ["sandbox-master@ctod.test"],
+  "emailAllowlist": [
+    "sandbox-master@ctod.test",
+    "sandbox-operator@ctod.test",
+    "sandbox-customer-owner@ctod.test"
+  ],
   "featureFlags": {}
 }
