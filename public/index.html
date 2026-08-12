@@ -22,5 +22,5 @@
 <script src="/runtime-config.js"></script>
 <script type="module">
 const invite=new URLSearchParams(location.search).get('invite');
-if(invite){import('/invite.js?v=20260808-2305')}else{await import('/app.js?v=20260810-008');const workspace=await window.ctodWorkspaceReady;import('/manager.js?v=20260810-005');import('/employee-identity.js?v=20260810-009');if(workspace?.isMaster)import('/master-dashboard.js?v=20260810-004')}
+if(invite){import('/invite.js?v=20260808-2305')}else{await import('/app.js?v=20260810-008');const workspace=await window.ctodWorkspaceReady;import('/manager.js?v=20260810-005');import('/employee-identity.js?v=20260810-009');if(workspace?.isMaster){import('/master-dashboard.js?v=20260810-004');if(['owner','admin'].includes(workspace.role))import('/configuration-admin.js?v=20260811-002')}}
 </script></body></html>
