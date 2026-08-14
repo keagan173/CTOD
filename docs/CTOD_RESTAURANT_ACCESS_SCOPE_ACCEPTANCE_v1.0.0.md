@@ -41,10 +41,21 @@ Result: PASS. Executive access spans the full company.
 
 Result: PASS. Location manager is constrained to the specifically authorized restaurant.
 
+## RLS table-read proof
+The same identities were then tested while executing as the Postgres `authenticated` role against `public.locations`, proving the row-level security policy itself filters records correctly.
+
+### Manager RLS result
+Visible rows: R01 only.
+
+### Executive RLS result
+Visible rows: R01, R02, R03, R04, R05.
+
+Result: PASS. The restriction is enforced by database RLS and cannot be bypassed by merely changing the front-end UI.
+
 ## Acceptance conclusion
 CTOD supports the required access model for a five-location restaurant group using one multi-tenant core:
 - senior/executive leadership can see the Company Master across locations;
 - a location manager can be limited to a single authorized location;
-- authorization is enforced at the database access layer, not merely hidden in the UI.
+- authorization is enforced at both the authorization helper and RLS table-read layers, not merely hidden in the UI.
 
 This acceptance test used Sandbox test identities and fictional tenant data only. CTOD 001 Production was not modified.
