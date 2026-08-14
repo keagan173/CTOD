@@ -27,6 +27,28 @@ CTOD is one commercial multi-tenant SaaS platform for many industries and custom
 - Central customer authorization helpers enforce lifecycle: trial/active allow tenant access; suspended/closed deny tenant access while Platform Owner management remains available.
 - Company organization mode automatically tracks active location count: one active location = single_site; more than one = multi_site.
 
+## 001 visual identity is now the Owner Platform standard
+
+Before continuing functional build work in the next session, finish applying the established 001 branding system to the Platform Owner experience.
+
+Source-of-truth branding remains `BRANDING_GUIDE.md` and `public/branding/`.
+
+Locked visual direction:
+
+- official primary mark: Infinity CTOD logo (`ctod-logo-1-primary.svg`)
+- primary identity colors: black / dark graphite + CTOD gold
+- primary tagline: **BUILDING PEOPLE. DRIVING PERFORMANCE.**
+- supporting marks may be used for people/talent, location, and performance sections
+- blue may remain as a restrained functional/data accent, not the dominant Owner Platform identity
+- customer/company branding must remain configuration-driven and separate from CTOD platform branding
+
+New reusable Owner Platform branding assets are committed:
+
+- `public/branding/ctod-owner-platform-theme.css`
+- `public/branding/ctod-owner-platform-branding.js`
+
+Next session must wire this reusable brand layer into `owner.html`, `owner-customer.html`, and future Owner Platform screens before continuing the Industry Builder. Do not invent a new Owner Console theme.
+
 ## Multi-industry provisioning acceptance
 
 Rollback-safe Production acceptance tests passed without leaving fictional tenants behind.
@@ -86,17 +108,19 @@ These frontend changes are in GitHub `main`, but Vercel Hobby build-rate limitin
 
 ## Immediate next build block
 
-1. Verify Vercel rate limit has cleared and deploy/confirm the queued Owner Console frontend commits.
-2. Visually verify Create Customer template preview/onboarding workflow.
-3. Visually verify customer Account & Subscription controls.
-4. Build the guided Industry Builder so Platform Owner can create/edit starter roles, starter location and starter review questions without JSON or SQL.
-5. Keep ordinary customer differences data/configuration driven. Do not fork CTOD per industry/customer.
-6. Connect a dedicated customer application domain such as `app.ctodsystem.com` and move invitation/customer-login links off the temporary Vercel customer URL.
-7. Continue commercial readiness: account/billing surfaces, system health, backups/audit visibility, final reversible onboarding acceptance, and Platform Owner operating workflow.
+1. Verify Vercel rate limit has cleared.
+2. Wire the reusable 001 black/gold/logo brand layer into Owner Console and Owner Customer Management.
+3. Deploy and visually verify the branded Owner Platform plus queued onboarding/account UI.
+4. Visually verify Create Customer template preview/onboarding workflow.
+5. Visually verify customer Account & Subscription controls.
+6. Build the guided Industry Builder so Platform Owner can create/edit starter roles, starter location and starter review questions without JSON or SQL.
+7. Keep ordinary customer differences data/configuration driven. Do not fork CTOD per industry/customer.
+8. Connect a dedicated customer application domain such as `app.ctodsystem.com` and move invitation/customer-login links off the temporary Vercel customer URL.
+9. Continue commercial readiness: account/billing surfaces, system health, backups/audit visibility, final reversible onboarding acceptance, and Platform Owner operating workflow.
 
 ## Source-control checkpoint
 
-Recent commercial-platform work includes Owner API v11, new-customer Executive semantics, automatic site-mode management, Platform Owner location management, customer lifecycle enforcement, onboarding UI and account-control UI. Production migrations and Edge Function runtime were synchronized back into GitHub during the 2026-08-14 build session.
+Recent commercial-platform work includes Owner API v11, new-customer Executive semantics, automatic site-mode management, Platform Owner location management, customer lifecycle enforcement, onboarding UI, account-control UI, and reusable 001 Owner Platform branding assets. Production migrations and Edge Function runtime were synchronized back into GitHub during the 2026-08-14 build session.
 
 ## Guardrails
 
@@ -108,7 +132,8 @@ Recent commercial-platform work includes Owner API v11, new-customer Executive s
 - Platform Owner remains separate from customer-company memberships.
 - Preserve tenant isolation and service-only/private control-plane boundaries.
 - Do not bypass MFA, validation, release or rollback gates.
+- Preserve the established 001 CTOD logo/black/gold identity across Platform Owner screens.
 
 ## Exact restart phrase
 
-`Resume CTOD build from Handoff v1.3.4 commercial-platform checkpoint. Verify GitHub main, Production Owner API v11, and whether the Vercel build-rate limit has cleared. Deploy and validate the queued Owner Console onboarding/account UI, then continue with the guided Industry Builder. Do not redesign the locked multi-tenant architecture.`
+`Resume CTOD build from Handoff v1.3.4 commercial-platform checkpoint. Verify GitHub main, Production Owner API v11, and whether the Vercel build-rate limit has cleared. First finish wiring the established 001 CTOD logos and black/gold brand system into the Owner Platform and deploy/validate the queued Owner Console UI. Then continue with the guided Industry Builder. Do not redesign the locked multi-tenant architecture.`
