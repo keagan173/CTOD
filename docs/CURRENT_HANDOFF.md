@@ -15,6 +15,20 @@ CTOD remains one commercial multi-tenant SaaS platform for many industries and c
 - Industry templates are immutable/versioned starter DNA and never silently overwrite an existing customer's live configuration.
 - Platform Owner remains separate from customer-company membership and customer access roles.
 
+## System-of-record and permanent-history invariant
+
+The CTOD Platform Owner layer is the authoritative platform-level system of record and historical intelligence layer for the product. Customer workspaces are permission-scoped operational views into the same underlying tenant data, not separate disposable copies.
+
+Locked behavior:
+
+- When an authorized customer manager adds an employee, assigns a role/location, completes a review, creates coaching, changes an employee, transfers an employee, or performs another supported tenant action, the resulting record must be stored in the same Production tenant history that the Owner Platform reports from.
+- The Platform Owner should not re-enter customer operational data manually just to keep the Owner Platform current.
+- Platform changes and customer configuration changes must append new versions/history rather than erase prior state.
+- Historical employees, assignments, reviews, coaching, configuration versions, access events, release history, audit events, and prior outcomes must remain queryable after later 001/customer updates.
+- Existing customer live data must not be destroyed when CTOD 001 or another template/configuration is upgraded.
+- The governing product rule is: **CTOD never replaces the past; it adds the next version on top of the past.**
+- Tenant isolation remains mandatory: CTOD Platform Owner may govern/report across the platform, while customer users only see records allowed by their company/location role scope.
+
 ## Production state
 
 - Commercial Tire remains intact as the real Production customer/reference tenant with 55 active locations.
@@ -26,6 +40,27 @@ CTOD remains one commercial multi-tenant SaaS platform for many industries and c
 - Customer account lifecycle supports trial, active, suspended and closed states.
 - Central customer authorization helpers enforce lifecycle: trial/active allow tenant access; suspended/closed deny tenant access while Platform Owner management remains available.
 - Company organization mode automatically tracks active location count: one active location = single_site; more than one = multi_site.
+
+## Location 040 pilot readiness
+
+Commercial Tire Location `040` / Meridian is active and is the controlled real-world 001 pilot location.
+
+Verified Production behavior:
+
+- Manager invitations can be scoped specifically to Location 040.
+- Accepted Location 040 manager accounts receive active `manager` location access only for the authorized location.
+- Managers, not Platform Owner, are responsible for adding their own employees during normal pilot onboarding.
+- `manager_add_employee` validates that the signed-in manager can access the selected location before writing.
+- The manager can only select a role belonging to the same company and active role library.
+- New employees are written to the Commercial Tire company record and receive an active employment assignment to Location 040 and the selected role.
+- Employee creation also creates the employee's initial review record when no open review exists, using the Location 040 review campaign and current published customer configuration.
+- Employee creation writes an audit event with actor, employee, location and role information.
+- `manager_workspace_employees()` only returns active employees whose current assignment is in a location the signed-in user is authorized to access.
+- Production currently has 14 active Commercial Tire roles, 4 Location 040 review campaigns and 1 published Commercial Tire configuration, so the add-employee/review bootstrap prerequisites exist.
+
+Pilot sequence is therefore:
+
+Platform Owner sends Manager invite scoped to 040 -> manager accepts/signs in -> manager adds Location 040 employees and correct roles -> CTOD creates/links initial review records -> manager begins real reviews -> Owner Platform history/reporting reads the resulting Production records automatically.
 
 ## 001 Owner Platform visual identity
 
@@ -43,20 +78,15 @@ Reusable assets:
 - `public/branding/ctod-owner-platform-theme.css`
 - `public/branding/ctod-owner-platform-branding.js`
 
-The Owner Console and Guided Industry Builder now directly load this brand layer. Persistent Owner Platform navigation connects Owner Console and Industry Builder. Legacy Owner Customer Management receives the same black/gold theme and fallback primary mark; direct script wiring can be completed during its next focused UI refactor.
+The Owner Console and Guided Industry Builder directly load this brand layer. Persistent Owner Platform navigation connects Owner Console, Industry Builder and Owner Customer Management.
 
 ## Vercel deployment state
 
-The previous Hobby build-rate throttle has cleared.
-
-- branded Owner Console deployment: Production success
-- branded Owner Console deployment: Sandbox success
-- the queued onboarding/account UI is no longer blocked by the former rate limit
-- Vercel routes now support both `/industry-builder` and `/owner-industry-builder`
+The previous Hobby build-rate throttle has cleared. Production and Sandbox deployments have been succeeding for the current Owner Platform work.
 
 ## Guided Industry Builder
 
-The Platform Owner can now create and version industry starter DNA without writing JSON or SQL.
+The Platform Owner can create and version industry starter DNA without writing JSON or SQL.
 
 ### New industry workflow
 
@@ -70,49 +100,17 @@ Industry Builder -> Load Existing -> load latest starter DNA -> edit starter loc
 
 Existing published template versions are preserved. Existing customer live configurations are not silently changed.
 
-### Production acceptance
-
-Rollback-safe tests passed:
-
-- forced failure during the second half of new-industry creation left zero orphan template records
-- successful template + published version creation was verified inside a forced rollback transaction
-- rollback left zero acceptance-test templates behind
-- Production template catalog remains only `001`, `BLANK`, `LANDSCAPE`, and `RESTAURANT`
-
 ## Owner Console
 
-The Owner Console retains:
-
-- password + TOTP MFA/AAL2 sign-in
-- Production KPIs
-- Customer Portfolio
-- guided Create Customer workflow
-- published industry template preview before provisioning
-- optional first Executive invitation and delivery
-- direct customer setup next step
-- Platform Release visibility
-
-Raw template JSON editing was removed from the main Owner Console. Industry creation/versioning now routes through the Guided Industry Builder.
+The Owner Console retains password + TOTP MFA/AAL2 sign-in, Production KPIs, Customer Portfolio, guided Create Customer workflow, industry-template preview, optional first Executive invitation, direct customer setup, Platform Release visibility and Guided Industry Builder routing.
 
 ## Customer management
 
-The customer-management screen continues to provide:
-
-- customer Account & Subscription state
-- plan/trial/support notes
-- suspend/close confirmation
-- Customer Sandbox creation
-- location and role management
-- sandbox review-question management
-- validation
-- promotion/discard
-- rollback
-- release history
-- access invitations with role/location scoping
+The customer-management screen continues to provide customer Account & Subscription state, plan/trial/support notes, suspend/close confirmation, Customer Sandbox creation, location and role management, sandbox review-question management, validation, promotion/discard, rollback, release history and access invitations with role/location scoping.
 
 ## Database/source synchronization
 
-Production migration added and synchronized to GitHub:
+Production migration synchronized to GitHub:
 
 - `20260814200641_atomic_industry_builder_bundle.sql`
 
@@ -120,9 +118,7 @@ Owner API v12 source is synchronized at:
 
 - `supabase/functions/ctod-owner-api/index.ts`
 
-The new atomic Industry Builder RPC is executable only by `service_role`; it did not add a new Supabase advisor warning.
-
-The Production security advisor still reports pre-existing legacy SECURITY DEFINER warnings and the existing RLS/no-policy informational notice. These should be handled as a dedicated security-hardening block rather than casually changing established manager/customer RPC behavior during unrelated UI work.
+The new atomic Industry Builder RPC is executable only by `service_role`; it did not add a new Supabase advisor warning. Pre-existing legacy SECURITY DEFINER warnings remain scheduled for a deliberate security-hardening pass rather than ad hoc changes during pilot rollout.
 
 ## Published Production starter templates
 
@@ -133,12 +129,13 @@ The Production security advisor still reports pre-existing legacy SECURITY DEFIN
 
 ## Immediate next build block
 
-1. Complete direct 001 branding/navigation wiring on `owner-customer.html` while preserving every existing customer-management control.
-2. Run an authenticated AAL2 browser/UI acceptance of Owner Console -> Industry Builder -> load existing template/new version flow when an interactive browser session is available.
-3. Complete a reversible end-to-end commercial onboarding acceptance: Create Customer -> select industry template -> provision Company Master -> Executive access -> Customer Sandbox -> validate -> promote/discard, leaving no fictional persistent tenant.
-4. Connect a dedicated customer application domain such as `app.ctodsystem.com` and migrate customer login/invitation links off the temporary Vercel customer URL.
-5. Continue commercial readiness: plan/billing surfaces, system health, backups/audit visibility and Platform Owner operating playbook.
-6. Perform a deliberate security-hardening pass over legacy authenticated SECURITY DEFINER RPCs using current app behavior/acceptance tests so access is not broken accidentally.
+1. Finish visual/UI verification of direct 001 branding/navigation on `owner-customer.html` while preserving every customer-management control.
+2. Run the first controlled real Location 040 pilot: Manager invite -> manager employee entry -> initial reviews -> review/coaching/history validation.
+3. Verify the Owner Platform automatically reflects Location 040 employee/review/audit history without manual re-entry.
+4. Complete reversible commercial onboarding acceptance for additional tenants as needed without leaving fictional persistent data.
+5. Connect a dedicated customer application domain such as `app.ctodsystem.com` and migrate customer login/invitation links off the temporary Vercel customer URL.
+6. Continue commercial readiness: plan/billing surfaces, system health, backups/audit visibility and Platform Owner operating playbook.
+7. Perform a deliberate security-hardening pass over legacy authenticated SECURITY DEFINER RPCs using current app behavior/acceptance tests so access is not broken accidentally.
 
 ## Guardrails
 
@@ -152,7 +149,8 @@ The Production security advisor still reports pre-existing legacy SECURITY DEFIN
 - Do not bypass MFA, validation, release or rollback gates.
 - Preserve the established 001 CTOD logo/black/gold identity across Platform Owner screens.
 - Ordinary industry/customer differences remain data/configuration driven. Do not fork CTOD.
+- Preserve all historical records across future 001/customer upgrades; never implement destructive overwrite as an update mechanism.
 
 ## Exact restart phrase
 
-`Resume CTOD build from Handoff v1.3.5 Owner Platform + Industry Builder checkpoint. Verify GitHub main, Production Owner API v12, Commercial Tire 55-location Production state, and Vercel deployment status. Continue by directly wiring the locked 001 brand/navigation system into Owner Customer Management without changing its controls, then run reversible commercial onboarding acceptance and continue commercial readiness. Do not redesign the locked multi-tenant architecture.`
+`Resume CTOD build from Handoff v1.3.5 Owner Platform + Industry Builder checkpoint. Preserve the locked system-of-record rule that CTOD never replaces the past; it adds the next version on top of the past. Continue the controlled Commercial Tire Location 040 pilot, verifying manager-added employees/reviews flow automatically into Owner Platform history without destructive overwrite. Do not redesign the locked multi-tenant architecture.`
