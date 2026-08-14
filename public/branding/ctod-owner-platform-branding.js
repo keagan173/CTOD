@@ -11,7 +11,14 @@
       const bar=document.createElement('div');bar.className='ctod-owner-brandbar';bar.innerHTML=`<img src="${PRIMARY}" alt="CTOD — Building People. Driving Performance."><div class="ctod-owner-brandcopy"><div class="ctod-owner-eyebrow">Platform Owner Control Plane</div><div class="ctod-owner-tagline">BUILDING PEOPLE. DRIVING PERFORMANCE.</div></div>`;main.prepend(bar);
       const rule=document.createElement('div');rule.className='ctod-owner-rule';bar.insertAdjacentElement('afterend',rule);
     }
-    const title=document.querySelector('h1');if(title&&title.textContent.trim()==='CTOD Platform Owner') title.textContent='CTOD Platform Owner';
+    if(!main.querySelector(':scope > .ctod-owner-nav')){
+      const nav=document.createElement('nav');nav.className='ctod-owner-nav';nav.setAttribute('aria-label','Platform Owner');
+      nav.innerHTML='<a href="/owner">Owner Console</a><a href="/owner-industry-builder">Industry Builder</a>';
+      const rule=main.querySelector(':scope > .ctod-owner-rule');
+      if(rule)rule.insertAdjacentElement('afterend',nav);else main.prepend(nav);
+      const here=location.pathname.replace(/\.html$/,'');
+      nav.querySelectorAll('a').forEach(a=>{if(here===new URL(a.href,location.origin).pathname)a.classList.add('active')});
+    }
     document.querySelectorAll('.card h2').forEach((h,i)=>{
       const card=h.closest('.card');if(!card||card.querySelector(':scope > .ctod-section-mark'))return;
       if(i===0)return;
