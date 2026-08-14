@@ -9,7 +9,7 @@
       "has": [
         { "type": "host", "value": "owner.ctodsystem.com" }
       ],
-      "destination": "/owner"
+      "destination": "/owner.html"
     }
   ],
   "headers": [
