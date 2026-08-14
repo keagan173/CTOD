@@ -1,95 +1,138 @@
 # CTOD Project Handoff v1.3.4
 
-**Current build state: 2026-08-14**
+**Final 2026-08-14 commercial-platform checkpoint**
 
 ## Locked architecture
 
-CTOD is one commercial multi-tenant SaaS platform for many industries. CTOD Production is the commercial system of record and permanent Platform Owner control plane. CTOD Development/Sandbox 002 remains the product workshop/staging/security/acceptance environment. Each customer has isolated live configuration plus an isolated customer sandbox/draft. Industry templates provide versioned starter DNA. Platform releases and customer configuration releases remain separate pipelines.
+CTOD is one commercial multi-tenant SaaS platform for many industries and customers. Production is the permanent Platform Owner control plane plus isolated customer Company Masters. CTOD Development/Sandbox 002 remains the product workshop/staging/security/acceptance environment. Customer configuration releases and CTOD Platform Releases are separate pipelines. Industry templates are versioned starter DNA and never silently overwrite existing customer live configuration.
 
 ## Production Owner control plane
 
 - Owner URL: `https://owner.ctodsystem.com`
-- DNS and SSL: valid
-- Authentication: password + verified TOTP MFA
-- Owner API: `ctod-owner-api` v9, `verify_jwt=true`, AAL2 required
-- Private control-plane schema remains unexposed; service-only owner RPCs perform internal authorization
-- Commercial Tire appears in Customer Portfolio
-- Current Production portfolio: 1 customer, 1 active customer, 55 active locations
-
-## Commercial Tire state
-
-- Slug: `commercial-tire`
-- Live configuration: `CTOD-CLOUD-1.0.0`
-- Schema version: `1.5`
-- No active customer sandbox draft at checkpoint
-- Existing 55-location structure, roles, ratings and questions remain intact
-
-## Industry templates
-
-Published Production templates:
-
-- `001` — Industry 001 Reference Template — v1.0.1
-- `BLANK` — Blank Standard Master — v1.0.0
-- `LANDSCAPE` — Landscaping — v1.0.0
-- `RESTAURANT` — Restaurant — v1.0.0
-
-Template changes must never silently overwrite an existing customer's live configuration.
-
-## Platform releases
-
-- CTOD 1.0.1: protected Production baseline
-- CTOD 1.1.0: available; latest validation records automated tests, security review and acceptance tests as passed
-- `operator_service_platform_releases` security boundary corrected so the service-only Owner path can read hidden release data without exposing private tables
+- DNS/SSL: valid
+- Authentication: password + verified TOTP MFA/AAL2
+- Owner API: `ctod-owner-api` v11, `verify_jwt=true`
+- Private control-plane schema remains unexposed; service-only RPCs enforce Platform Owner authorization
+- Commercial Tire remains intact in Production with 55 active locations
+- Owner customer-management UI supports invitations/access, locations/roles, customer sandbox, validation, promotion, discard, rollback and release history
 
 ## Customer access model
 
-Platform Owner can manage customer access without becoming a customer-company member.
+Platform Owner is separate from customer-company membership. Customer first-contact semantics are now **Executive**, not customer `owner`.
 
-Supported customer roles:
+- Executive: company-wide visibility and customer access administration
+- Viewer: company-wide read-only
+- Area Leader: approved-location scope
+- Market Leader: approved-location scope
+- Manager: approved-location scope
 
-- Executive: company-wide visibility; may manage that company's invitations/access
-- Viewer: company-wide read-only visibility
-- Area Leader: location scoped
-- Market Leader: location scoped
-- Manager: location scoped
+Customers never receive CTOD application/code editing rights.
 
-Manager/Market/Area roles require one or more approved active locations. Platform Owner access invitation RPCs are service-role-only. Customer-side Owner/Admin/Executive users may manage invitations only for their own company. No customer receives CTOD code/platform editing rights.
+## Published Production starter templates
 
-## Invitation delivery
+- `001` — Industry 001 Reference Template v1.0.1
+- `BLANK` — Blank Standard Master v1.0.0
+- `LANDSCAPE` — Landscaping v1.0.0
+- `RESTAURANT` — Restaurant v1.0.0
 
-- `ctod-send-customer-invite` v2 requires JWT + AAL2 + Platform Owner authorization
-- Existing recipient: secure magic-link flow
-- New recipient: Supabase invitation flow
-- Acceptance page: `/invite?token=...`
-- Current customer-app host remains `ctod.vercel.app` until dedicated customer domain is connected
-- Rollback-safe Production acceptance for create/list/revoke location-scoped Manager invitation passed
-- Fake test invitation persisted: none
-- Pending real invitations at checkpoint: 0
+## Multi-industry provisioning acceptance
 
-## Owner customer-management UI
+Rollback-safe Production tests passed and left no fictional tenants behind.
 
-The deployed customer-management screen now contains configuration safety, customer structure, customer sandbox/question management, validation/deployment, real validation history, real configuration release history, access and invitations, role/location scoping, create/send, resend and revoke invitation actions.
+### Landscaping proof
 
-Vercel checks for Production and Sandbox passed on the owner-customer UI deployment.
+- provisioned from LANDSCAPE v1.0.0
+- 1 starter location
+- 3 starter roles
+- 3 landscaping-specific review questions
+- first customer administrator = Executive
 
-## Key commits
+### Restaurant proof
 
-- `55b24ad924ef2d1879cf3a1fc9b81b2f4c714062` — platform release RPC security boundary fix
-- `814106150a81c2beae2b9fe727f1245f85dd3c3c` — hardened customer invitation sender v2
-- `680f3f16f0e4154cc39491c4785356739465f640` — Platform Owner customer invitation services
-- `52408ca3d96366e55ac9df43fa0fd23b4ac36068` — Owner API v9 customer access management
-- `ea10e04167c1d008f7d7c3af48da76acd1d411b7` — customer Executive access administration
-- `43a0e5d1e23d9216b4b052bea5337f8192e9cc25` — Owner customer validation/release history
-- `685ba28053b3b0feaebf131a2b53afade27a0b60` — Owner customer-management UI access/history update
+- provisioned from RESTAURANT v1.0.0
+- 1 starter restaurant
+- 4 starter roles
+- 4 restaurant-specific review questions
+- first customer administrator = Executive
+- added R02/R03/R04/R05
+- verified 5 active restaurants
+- organization mode automatically switched to `multi_site`
 
-## Next build priorities
+This proves ordinary industry/customer differences can remain template/configuration driven in the same CTOD codebase and database model.
 
-1. Visually verify repaired Platform Releases and Industry Template panels in Production Owner Console.
-2. Visually verify Commercial Tire's new Access & Invitations plus validation/release-history sections.
-3. Do not send a real invitation until a real intended recipient is selected.
-4. Connect a dedicated customer application domain such as `app.ctodsystem.com`, then migrate customer login/invite links away from `ctod.vercel.app`.
-5. Complete a reversible end-to-end commercial onboarding acceptance: Create Customer -> choose template -> provision Company Master -> invite Executive -> confirm tenant access -> customer sandbox -> validate -> promote/discard.
-6. Add plan/billing/account-health/system-health surfaces to the Platform Owner Console.
-7. Finalize the Platform Owner operating workflow for selling, provisioning, supporting and updating customers without cloning CTOD.
+## Organization growth behavior
 
-**This handoff supersedes CTOD Project Handoff v1.3.3.**
+Company organization mode is automatic:
+
+- 1 active location -> `single_site`
+- more than 1 active location -> `multi_site`
+
+This supports a one-location landscaping customer growing into multiple branches and a restaurant customer growing from one restaurant to a multi-unit group without changing applications.
+
+## Customer account lifecycle
+
+Production now supports `trial`, `active`, `suspended`, and `closed` customer account states.
+
+Central tenant authorization was hardened so:
+
+- trial/active -> customer access allowed
+- suspended/closed -> customer access denied
+- Platform Owner service access remains available for support/reactivation
+
+Rollback-safe suspension acceptance passed: the test tenant's customer-access helper returned false immediately after suspension.
+
+## New-customer commercial workflow
+
+Backend capability now supports:
+
+Lead closes -> Owner Console -> Create Customer -> choose published Industry Template/version -> company information -> optional Executive email -> provision isolated Company Master -> Executive invitation -> configure locations/roles/questions -> validate -> activate/manage customer.
+
+New-customer provisioning creates Executive access, not a second platform owner.
+
+## Owner API v11
+
+Owner API v11 is live in Production and synchronized to GitHub. It includes the prior Platform Owner controls plus current customer account state returned on customer-management status and Platform Owner account-state update support.
+
+## Frontend queued in GitHub
+
+New Owner Console/customer-management UI commits include:
+
+- guided Create Customer onboarding presentation
+- template preview before provisioning
+- Executive terminology
+- automatic Executive invitation delivery after provisioning
+- direct Manage Customer next step
+- customer Account & Subscription panel
+- plan/trial/support-note controls
+- account status controls with confirmation for suspend/close
+
+### Vercel blocker at checkpoint
+
+Vercel Hobby build-rate limiting rejected the newest frontend automatic deployments. This is an external deployment throttle, not a CTOD code/build defect. The currently deployed Owner Console remains online. The queued frontend commits are safely on GitHub `main` and should be deployed/verified after the rate window clears.
+
+## Source-control/database synchronization
+
+Production migrations created during the final session were synchronized into GitHub, including:
+
+- new customer first contact = Executive
+- Platform Owner location management
+- automatic company site-mode management
+- customer account lifecycle enforcement
+
+Owner API v11 runtime was also synchronized to `supabase/functions/ctod-owner-api/index.ts`.
+
+## Exact next-session priorities
+
+1. Verify GitHub `main`, Production Owner API v11 and current Production customer state before writes.
+2. Check whether Vercel's build-rate limit has cleared.
+3. Deploy/verify the queued Owner Console onboarding and Account & Subscription UI.
+4. Build the guided **Industry Builder** so Platform Owner can create industry starter roles, starter location and starter review questions without JSON or SQL.
+5. Keep industry/customer differences data-driven; do not fork CTOD.
+6. Connect a dedicated customer application domain such as `app.ctodsystem.com` and move customer login/invite links away from the temporary Vercel customer URL.
+7. Continue commercial readiness: plan/billing surfaces, system health/backups/audit visibility, reversible real onboarding acceptance and the Platform Owner operating playbook.
+
+## Restart command
+
+`Resume CTOD build from Handoff v1.3.4 commercial-platform checkpoint. Verify GitHub main, Production Owner API v11, and whether the Vercel build-rate limit has cleared. Deploy and validate the queued Owner Console onboarding/account UI, then continue with the guided Industry Builder. Do not redesign the locked multi-tenant architecture.`
+
+**This handoff supersedes all earlier v1.3.4 interim notes for restart purposes.**
