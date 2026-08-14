@@ -5,7 +5,8 @@
   "trailingSlash": false,
   "rewrites": [
     {"source":"/","has":[{"type":"host","value":"owner.ctodsystem.com"}],"destination":"/owner.html"},
-    {"source":"/industry-builder","destination":"/owner-industry-builder.html"}
+    {"source":"/industry-builder","destination":"/owner-industry-builder.html"},
+    {"source":"/owner-industry-builder","destination":"/owner-industry-builder.html"}
   ],
   "headers": [
     {
@@ -17,12 +18,8 @@
       ]
     },
     {
-      "source":"/owner",
-      "headers":[{"key":"Link","value":"</branding/ctod-owner-platform-theme.css?v=20260814>; rel=stylesheet"}]
-    },
-    {
       "source":"/owner-customer",
-      "headers":[{"key":"Link","value":"</branding/ctod-owner-platform-theme.css?v=20260814>; rel=stylesheet"}]
+      "headers":[{"key":"Link","value":"</branding/ctod-owner-platform-theme.css?v=20260814-3>; rel=stylesheet"}]
     }
   ]
 }
