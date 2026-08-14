@@ -1,7 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-const SUPABASE_URL='https://wezcuprboyvbmlnuqdoi.supabase.co';
-const SUPABASE_KEY='sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5';
-const sbe=createClient(SUPABASE_URL,SUPABASE_KEY);
+import { ctodSupabase as sbe } from './ctod-config.js';
 const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 let currentEmployeeId=null;
 

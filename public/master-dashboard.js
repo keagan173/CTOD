@@ -1,8 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const SUPABASE_URL='https://wezcuprboyvbmlnuqdoi.supabase.co';
-const SUPABASE_KEY='sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5';
-const sbd=createClient(SUPABASE_URL,SUPABASE_KEY);
+import { ctodSupabase as sbd } from './ctod-config.js';
 const $d=s=>document.querySelector(s);
 const escd=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 let masterLoaded=false;

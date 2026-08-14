@@ -1,8 +1,13 @@
 {
   "name": "ctod",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
-    "start": "serve public"
+    "build": "node scripts/build.mjs",
+    "build:production": "node scripts/build.mjs --environment production",
+    "build:sandbox": "node scripts/build.mjs --environment sandbox",
+    "check": "node scripts/check.mjs",
+    "sandbox:bootstrap-user": "node scripts/bootstrap-sandbox-user.mjs",
+    "start": "npm run build:production && serve dist"
   }
 }

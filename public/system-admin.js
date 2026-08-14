@@ -1,7 +1,6 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { assertSandboxEmailAllowed,ctodConfig,ctodSupabase as sb } from './ctod-config.js';
 
-const SUPABASE_URL='https://wezcuprboyvbmlnuqdoi.supabase.co';
-const sb=createClient(SUPABASE_URL,'sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5');
+const SUPABASE_URL=ctodConfig.supabaseUrl;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 const ACCESS_ROLE_LABELS={manager:'Manager',market_leader:'Market Leader',area_leader:'Area Director',executive:'Executive',viewer:'Viewer',owner:'Owner',admin:'Administrator'};
@@ -200,6 +199,7 @@ async function renderAccessPanel(location,accessRows,invites){
     const role=$('#locationAccessRole').value;
     const msg=$('#locationAccessMsg');
     if(!email||!email.includes('@')){msg.textContent='Enter a valid email address.';return}
+    try{assertSandboxEmailAllowed(email)}catch(error){msg.textContent=error.message;return}
     button.disabled=true;
     msg.textContent='Checking CTOD access...';
 
