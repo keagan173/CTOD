@@ -13,7 +13,8 @@
     }
     if(!main.querySelector(':scope > .ctod-owner-nav')){
       const nav=document.createElement('nav');nav.className='ctod-owner-nav';nav.setAttribute('aria-label','Platform Owner');
-      nav.innerHTML='<a href="/owner">Owner Console</a><a href="/owner-industry-builder">Industry Builder</a>';
+      const customer=new URLSearchParams(location.search).get('company');
+      nav.innerHTML='<a href="/owner">Owner Console</a><a href="/owner-industry-builder">Industry Builder</a>'+(customer?`<a href="/owner-customer?company=${encodeURIComponent(customer)}">Customer Management</a>`:'');
       const rule=main.querySelector(':scope > .ctod-owner-rule');
       if(rule)rule.insertAdjacentElement('afterend',nav);else main.prepend(nav);
       const here=location.pathname.replace(/\.html$/,'');
