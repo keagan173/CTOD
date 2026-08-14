@@ -1,1 +1,138 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CTOD Industry Builder</title><link rel="stylesheet" href="/branding/ctod-owner-platform-theme.css?v=20260814"><style>*{box-sizing:border-box}.top{display:flex;justify-content:space-between;gap:16px;align-items:center}.card{padding:20px;margin:16px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field{width:100%;padding:11px;border:1px solid #ccc;border-radius:10px;margin:5px 0;font:inherit}.btn{display:inline-block;border-radius:10px;padding:11px 14px;font-weight:800;cursor:pointer;text-decoration:none}.muted{color:#6b7280}.row{border-top:1px solid #eee;padding:10px 0}.pill{display:inline-block;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:800}.hidden{display:none!important}.good{color:#18794e}.bad{color:#b42318}.builder-step{border-left:4px solid #d6a62d}.actions{display:flex;gap:8px;flex-wrap:wrap}.mini{font-size:12px}.summary{background:#fbf8f0;border:1px solid #ded3b7;border-radius:12px;padding:14px}@media(max-width:760px){.grid{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}</style></head><body><main><div class="top"><div><h1 style="margin:0">Guided Industry Builder</h1><div class="muted">Create reusable starter DNA without JSON or SQL.</div></div><a class="btn secondary" href="/owner">Owner Console</a></div><section id="gate" class="card"><b>Platform Owner authentication required.</b><div class="muted">Sign in and complete MFA in the Owner Console first, then return here.</div><a class="btn primary" href="/owner" style="margin-top:10px">Open Owner Console</a></section><section id="app" class="hidden"><section class="card builder-step"><h2>1. Industry identity</h2><div class="grid"><div><label>Template code</label><input id="code" class="field" placeholder="LANDSCAPE"><label>Industry name</label><input id="name" class="field" placeholder="Landscaping"><label>Description</label><textarea id="description" class="field" rows="4" placeholder="Starter configuration for landscaping companies"></textarea></div><div><label>Version</label><input id="version" class="field" value="1.0.0"><label>Schema version</label><input id="schema" class="field" value="1.0.1"><label>Minimum CTOD client</label><input id="client" class="field" value="1.0.1"></div></div></section><section class="card builder-step"><h2>2. Starter location</h2><div class="grid"><input id="locCode" class="field" value="001" placeholder="Location code"><input id="locName" class="field" value="Main Location" placeholder="Location name"></div><div class="muted mini">This is starter DNA only. Each customer receives its own isolated location records when provisioned.</div></section><section class="card builder-step"><div class="top"><div><h2 style="margin:0">3. Starter roles</h2><div class="muted">Add the common jobs this industry should start with.</div></div><button id="addRole" class="btn secondary">+ Add Role</button></div><div id="roles"></div></section><section class="card builder-step"><div class="top"><div><h2 style="margin:0">4. Starter review questions</h2><div class="muted">Build the initial review library. Customers can later customize in their own sandbox.</div></div><button id="addQuestion" class="btn secondary">+ Add Question</button></div><div id="questions"></div></section><section class="card builder-step"><h2>5. Review & publish</h2><div id="summary" class="summary"></div><label style="display:block;margin:12px 0"><input id="publish" type="checkbox" checked> Publish this template version immediately</label><div class="actions"><button id="save" class="btn primary">Create Industry Template</button><button id="refresh" class="btn secondary">Refresh Catalog</button></div><div id="msg" class="muted" style="margin-top:10px"></div></section><section class="card"><h2>Published & Draft Industries</h2><div id="catalog"></div></section></section></main><script type="module">import{createClient}from'https://esm.sh/@supabase/supabase-js@2.112.2';const URL='https://wezcuprboyvbmlnuqdoi.supabase.co',KEY='sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5',sb=createClient(URL,KEY),$=s=>document.querySelector(s);let roles=[{title:'Employee'},{title:'Supervisor'}],questions=[{section_name:'Performance',question_text:'Consistently meets the standards of the role.',requires_rating:true,requires_reason:true}],catalog={templates:[],versions:[]};const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));async function call(action,p={}){const{data:{session}}=await sb.auth.getSession();if(!session)throw new Error('Sign in required');const r=await fetch(URL+'/functions/v1/ctod-owner-api',{method:'POST',headers:{authorization:'Bearer '+session.access_token,apikey:KEY,'content-type':'application/json'},body:JSON.stringify({action,...p})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Owner service failed');return d}function render(){$('#roles').innerHTML=roles.map((r,i)=>`<div class="row grid"><input class="field roleTitle" data-i="${i}" value="${esc(r.title)}" placeholder="Role title"><button class="btn secondary delRole" data-i="${i}">Remove</button></div>`).join('');$('#questions').innerHTML=questions.map((q,i)=>`<div class="row"><div class="grid"><input class="field qSection" data-i="${i}" value="${esc(q.section_name)}" placeholder="Section"><input class="field qText" data-i="${i}" value="${esc(q.question_text)}" placeholder="Review question"></div><label class="mini"><input class="qRating" data-i="${i}" type="checkbox" ${q.requires_rating?'checked':''}> Rating required</label> &nbsp; <label class="mini"><input class="qReason" data-i="${i}" type="checkbox" ${q.requires_reason?'checked':''}> Reason/comment required</label> <button class="btn secondary delQuestion" data-i="${i}">Remove</button></div>`).join('');document.querySelectorAll('.roleTitle').forEach(x=>x.oninput=()=>{roles[+x.dataset.i].title=x.value;summary()});document.querySelectorAll('.delRole').forEach(x=>x.onclick=()=>{roles.splice(+x.dataset.i,1);render();summary()});document.querySelectorAll('.qSection').forEach(x=>x.oninput=()=>{questions[+x.dataset.i].section_name=x.value;summary()});document.querySelectorAll('.qText').forEach(x=>x.oninput=()=>{questions[+x.dataset.i].question_text=x.value;summary()});document.querySelectorAll('.qRating').forEach(x=>x.onchange=()=>questions[+x.dataset.i].requires_rating=x.checked);document.querySelectorAll('.qReason').forEach(x=>x.onchange=()=>questions[+x.dataset.i].requires_reason=x.checked);document.querySelectorAll('.delQuestion').forEach(x=>x.onclick=()=>{questions.splice(+x.dataset.i,1);render();summary()});summary()}function summary(){const code=$('#code').value.trim().toUpperCase()||'NEW',name=$('#name').value.trim()||'New Industry';$('#summary').innerHTML=`<b>${esc(code)} · ${esc(name)}</b><br>Starter location: ${esc($('#locCode').value)} · ${esc($('#locName').value)}<br>Starter roles: ${esc(roles.filter(r=>r.title.trim()).map(r=>r.title.trim()).join(', ')||'None')}<br>Starter review questions: ${questions.filter(q=>q.question_text.trim()).length}` }async function loadCatalog(){catalog=await call('template_catalog');$('#catalog').innerHTML=(catalog.templates||[]).map(t=>{const vs=(catalog.versions||[]).filter(v=>v.industry_template_id===t.id);return `<div class="row"><b>${esc(t.template_code)} · ${esc(t.name)}</b> <span class="pill">${esc(t.status)}</span><div class="muted mini">${esc(t.description||'')} · ${vs.length} version(s)</div></div>`}).join('')||'<div class="muted">No templates.</div>'}async function boot(){try{const{data:{session}}=await sb.auth.getSession();if(!session)return;const aal=await sb.auth.mfa.getAuthenticatorAssuranceLevel();if(aal.error||aal.data.currentLevel!=='aal2')return;await call('home');$('#gate').classList.add('hidden');$('#app').classList.remove('hidden');render();await loadCatalog()}catch(e){$('#gate').innerHTML='<b>Owner access required.</b><div class="bad">'+esc(e.message)+'</div><a class="btn primary" href="/owner">Open Owner Console</a>'}}$('#addRole').onclick=()=>{roles.push({title:''});render()};$('#addQuestion').onclick=()=>{questions.push({section_name:'Performance',question_text:'',requires_rating:true,requires_reason:true});render()};['code','name','locCode','locName'].forEach(id=>$('#'+id).oninput=summary);$('#refresh').onclick=()=>loadCatalog().catch(e=>$('#msg').textContent=e.message);$('#save').onclick=async()=>{try{const code=$('#code').value.trim().toUpperCase(),name=$('#name').value.trim(),description=$('#description').value.trim();if(!/^[A-Z0-9_-]{2,30}$/.test(code))throw new Error('Template code must be 2-30 letters, numbers, underscores, or hyphens.');if(!name)throw new Error('Industry name is required.');const cleanRoles=roles.map((r,i)=>({title:r.title.trim(),sort_order:(i+1)*10})).filter(r=>r.title);const cleanQuestions=questions.map((q,i)=>({question_code:code+'-'+String(i+1).padStart(3,'0'),section_code:(q.section_name||'General').toUpperCase().replace(/[^A-Z0-9]+/g,'_'),section_name:(q.section_name||'General').trim(),question_text:q.question_text.trim(),category:(q.section_name||'General').trim(),sort_order:(i+1)*10,requires_rating:!!q.requires_rating,requires_reason:!!q.requires_reason})).filter(q=>q.question_text);if(!cleanRoles.length)throw new Error('Add at least one starter role.');if(!cleanQuestions.length)throw new Error('Add at least one starter review question.');$('#save').disabled=true;$('#msg').textContent='Creating draft industry...';const t=await call('create_industry_template',{template_code:code,name,description});const template=t.template?.template_id?t.template:(Array.isArray(t.template)?t.template[0]:t.template);const templateId=template?.template_id||template?.id;if(!templateId)throw new Error('Template was created but its ID was not returned. Refresh the catalog before retrying the version.');$('#msg').textContent='Creating starter version...';await call('create_template_version',{template_id:templateId,version_code:$('#version').value.trim(),schema_version:$('#schema').value.trim(),minimum_client_version:$('#client').value.trim(),publish:$('#publish').checked,configuration:{default_location:{location_code:$('#locCode').value.trim()||'001',name:$('#locName').value.trim()||'Main Location'},roles:cleanRoles,questions:cleanQuestions}});$('#msg').className='good';$('#msg').textContent='Industry template created successfully. It is now reusable starter DNA for future customer provisioning.';await loadCatalog()}catch(e){$('#msg').className='bad';$('#msg').textContent=e.message}finally{$('#save').disabled=false}};boot();</script></body></html>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CTOD Industry Builder</title>
+  <link rel="stylesheet" href="/branding/ctod-owner-platform-theme.css?v=20260814-2">
+  <script src="/branding/ctod-owner-platform-branding.js?v=20260814-2" defer></script>
+  <style>
+    *{box-sizing:border-box}.top{display:flex;justify-content:space-between;gap:16px;align-items:center}.card{padding:20px;margin:16px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field{width:100%;padding:11px;border:1px solid #ccc;border-radius:10px;margin:5px 0;font:inherit}.btn{display:inline-block;border-radius:10px;padding:11px 14px;font-weight:800;cursor:pointer;text-decoration:none}.muted{color:#6b7280}.row{border-top:1px solid #eee;padding:10px 0}.pill{display:inline-block;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:800}.hidden{display:none!important}.good{color:#18794e}.bad{color:#b42318}.builder-step{border-left:4px solid #d6a62d}.actions{display:flex;gap:8px;flex-wrap:wrap}.mini{font-size:12px}.summary{background:#fbf8f0;border:1px solid #ded3b7;border-radius:12px;padding:14px}.modebar{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}.locked{background:#f1eee6!important;color:#666!important}.version-note{padding:10px 12px;border-radius:10px;background:#f7f4eb;border:1px solid #ded3b7;margin-top:8px}@media(max-width:760px){.grid,.modebar{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+<main>
+  <section id="gate" class="card">
+    <b>Platform Owner authentication required.</b>
+    <div class="muted">Sign in and complete MFA in the Owner Console first, then return here.</div>
+    <a class="btn primary" href="/owner" style="margin-top:10px">Open Owner Console</a>
+  </section>
+
+  <section id="app" class="hidden">
+    <div class="top">
+      <div>
+        <h1 style="margin:0">Guided Industry Builder</h1>
+        <div class="muted">Create and version reusable industry starter DNA without JSON or SQL.</div>
+      </div>
+      <span class="pill">PRODUCTION</span>
+    </div>
+
+    <section class="card">
+      <h2>Builder Mode</h2>
+      <div class="modebar">
+        <select id="existing" class="field"><option value="">New Industry</option></select>
+        <button id="loadExisting" class="btn secondary">Load Existing</button>
+        <button id="newIndustry" class="btn secondary">Start New</button>
+      </div>
+      <div id="modeHelp" class="muted mini">Create a new reusable industry template and its first version.</div>
+    </section>
+
+    <section class="card builder-step">
+      <h2>1. Industry identity</h2>
+      <div class="grid">
+        <div>
+          <label>Template code</label>
+          <input id="code" class="field" placeholder="CONSTRUCTION">
+          <label>Industry name</label>
+          <input id="name" class="field" placeholder="Construction">
+          <label>Description</label>
+          <textarea id="description" class="field" rows="4" placeholder="Starter configuration for construction companies"></textarea>
+        </div>
+        <div>
+          <label>Version</label>
+          <input id="version" class="field" value="1.0.0">
+          <label>Schema version</label>
+          <input id="schema" class="field" value="1.0.1">
+          <label>Minimum CTOD client</label>
+          <input id="client" class="field" value="1.0.1">
+          <div id="versionNote" class="version-note muted mini">New industries begin at version 1.0.0 by default.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card builder-step">
+      <h2>2. Starter location</h2>
+      <div class="grid">
+        <input id="locCode" class="field" value="001" placeholder="Location code">
+        <input id="locName" class="field" value="Main Location" placeholder="Location name">
+      </div>
+      <div class="muted mini">Starter DNA only. Customer provisioning creates isolated company/location records from this template.</div>
+    </section>
+
+    <section class="card builder-step">
+      <div class="top">
+        <div><h2 style="margin:0">3. Starter roles</h2><div class="muted">Add the common jobs this industry should start with.</div></div>
+        <button id="addRole" class="btn secondary">+ Add Role</button>
+      </div>
+      <div id="roles"></div>
+    </section>
+
+    <section class="card builder-step">
+      <div class="top">
+        <div><h2 style="margin:0">4. Starter review questions</h2><div class="muted">Build the initial review library. Customers can customize later inside their own sandbox.</div></div>
+        <button id="addQuestion" class="btn secondary">+ Add Question</button>
+      </div>
+      <div id="questions"></div>
+    </section>
+
+    <section class="card builder-step">
+      <h2>5. Review & publish</h2>
+      <div id="summary" class="summary"></div>
+      <label style="display:block;margin:12px 0"><input id="publish" type="checkbox" checked> Publish this template version immediately</label>
+      <div class="actions">
+        <button id="save" class="btn primary">Create Industry Template</button>
+        <button id="refresh" class="btn secondary">Refresh Catalog</button>
+      </div>
+      <div id="msg" class="muted" style="margin-top:10px"></div>
+    </section>
+
+    <section class="card">
+      <h2>Industry Catalog</h2>
+      <div id="catalog"></div>
+    </section>
+  </section>
+</main>
+
+<script type="module">
+import{createClient}from'https://esm.sh/@supabase/supabase-js@2.112.2';
+const URL='https://wezcuprboyvbmlnuqdoi.supabase.co',KEY='sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5',sb=createClient(URL,KEY),$=s=>document.querySelector(s);
+let roles=[],questions=[],catalog={templates:[],versions:[]},editingTemplateId=null;
+const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+async function call(action,p={}){const{data:{session}}=await sb.auth.getSession();if(!session)throw new Error('Sign in required');const r=await fetch(URL+'/functions/v1/ctod-owner-api',{method:'POST',headers:{authorization:'Bearer '+session.access_token,apikey:KEY,'content-type':'application/json'},body:JSON.stringify({action,...p})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Owner service failed');return d}
+function resetDNA(){roles=[{title:'Employee'},{title:'Supervisor'}];questions=[{section_name:'Performance',question_text:'Consistently meets the standards of the role.',requires_rating:true,requires_reason:true}]}
+function bumpPatch(v){const m=String(v||'1.0.0').match(/^(\d+)\.(\d+)\.(\d+)$/);return m?`${m[1]}.${m[2]}.${Number(m[3])+1}`:'1.0.1'}
+function latestVersion(templateId){return(catalog.versions||[]).filter(v=>v.industry_template_id===templateId).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0]||null}
+function render(){
+  $('#roles').innerHTML=roles.map((r,i)=>`<div class="row grid"><input class="field roleTitle" data-i="${i}" value="${esc(r.title)}" placeholder="Role title"><button class="btn secondary delRole" data-i="${i}">Remove</button></div>`).join('');
+  $('#questions').innerHTML=questions.map((q,i)=>`<div class="row"><div class="grid"><input class="field qSection" data-i="${i}" value="${esc(q.section_name)}" placeholder="Section"><input class="field qText" data-i="${i}" value="${esc(q.question_text)}" placeholder="Review question"></div><label class="mini"><input class="qRating" data-i="${i}" type="checkbox" ${q.requires_rating?'checked':''}> Rating required</label> &nbsp; <label class="mini"><input class="qReason" data-i="${i}" type="checkbox" ${q.requires_reason?'checked':''}> Reason/comment required</label> <button class="btn secondary delQuestion" data-i="${i}">Remove</button></div>`).join('');
+  document.querySelectorAll('.roleTitle').forEach(x=>x.oninput=()=>{roles[+x.dataset.i].title=x.value;summary()});
+  document.querySelectorAll('.delRole').forEach(x=>x.onclick=()=>{roles.splice(+x.dataset.i,1);render()});
+  document.querySelectorAll('.qSection').forEach(x=>x.oninput=()=>{questions[+x.dataset.i].section_name=x.value;summary()});
+  document.querySelectorAll('.qText').forEach(x=>x.oninput=()=>{questions[+x.dataset.i].question_text=x.value;summary()});
+  document.querySelectorAll('.qRating').forEach(x=>x.onchange=()=>{questions[+x.dataset.i].requires_rating=x.checked;summary()});
+  document.querySelectorAll('.qReason').forEach(x=>x.onchange=()=>{questions[+x.dataset.i].requires_reason=x.checked;summary()});
+  document.querySelectorAll('.delQuestion').forEach(x=>x.onclick=()=>{questions.splice(+x.dataset.i,1);render()});
+  summary();
+}
+function summary(){const code=$('#code').value.trim().toUpperCase()||'NEW',name=$('#name').value.trim()||'New Industry',mode=editingTemplateId?'New version of existing industry':'New industry';$('#summary').innerHTML=`<b>${esc(code)} · ${esc(name)}</b> <span class="pill">${esc(mode)}</span><br>Version: ${esc($('#version').value)} · Schema: ${esc($('#schema').value)}<br>Starter location: ${esc($('#locCode').value)} · ${esc($('#locName').value)}<br>Starter roles: ${esc(roles.filter(r=>r.title.trim()).map(r=>r.title.trim()).join(', ')||'None')}<br>Starter review questions: ${questions.filter(q=>q.question_text.trim()).length}`}
+function setNewMode(){editingTemplateId=null;$('#existing').value='';$('#code').disabled=false;$('#name').disabled=false;$('#description').disabled=false;$('#code').classList.remove('locked');$('#name').classList.remove('locked');$('#description').classList.remove('locked');$('#code').value='';$('#name').value='';$('#description').value='';$('#version').value='1.0.0';$('#schema').value='1.0.1';$('#client').value='1.0.1';$('#locCode').value='001';$('#locName').value='Main Location';$('#modeHelp').textContent='Create a new reusable industry template and its first version.';$('#versionNote').textContent='New industries begin at version 1.0.0 by default.';$('#save').textContent='Create Industry Template';resetDNA();render()}
+function loadSelected(){const id=$('#existing').value,t=(catalog.templates||[]).find(x=>x.id===id);if(!t)throw new Error('Choose an existing industry first.');const v=latestVersion(id),cfg=v?.configuration||{};editingTemplateId=id;$('#code').value=t.template_code;$('#name').value=t.name;$('#description').value=t.description||'';['code','name','description'].forEach(x=>{$('#'+x).disabled=true;$('#'+x).classList.add('locked')});$('#version').value=bumpPatch(v?.version_code);$('#schema').value=v?.schema_version||'1.0.1';$('#client').value=v?.minimum_client_version||'1.0.1';$('#locCode').value=cfg.default_location?.location_code||'001';$('#locName').value=cfg.default_location?.name||'Main Location';roles=Array.isArray(cfg.roles)?cfg.roles.map(r=>({title:r.title||''})):[{title:'Employee'}];questions=Array.isArray(cfg.questions)?cfg.questions.map(q=>({section_name:q.section_name||q.category||'Performance',question_text:q.question_text||'',requires_rating:q.requires_rating!==false,requires_reason:q.requires_reason!==false})):[{section_name:'Performance',question_text:'',requires_rating:true,requires_reason:true}];$('#modeHelp').textContent='Loaded '+t.template_code+'. Changes create a new immutable template version; existing published versions are preserved.';$('#versionNote').textContent='Latest version: '+(v?.version_code||'none')+'. Suggested next version: '+$('#version').value+'.';$('#save').textContent='Create New Template Version';render()}
+async function loadCatalog(){catalog=await call('template_catalog');$('#existing').innerHTML='<option value="">New Industry</option>'+(catalog.templates||[]).map(t=>`<option value="${esc(t.id)}">${esc(t.template_code)} · ${esc(t.name)} · ${esc(t.status)}</option>`).join('');$('#catalog').innerHTML=(catalog.templates||[]).map(t=>{const vs=(catalog.versions||[]).filter(v=>v.industry_template_id===t.id);const latest=latestVersion(t.id);return `<div class="row"><b>${esc(t.template_code)} · ${esc(t.name)}</b> <span class="pill">${esc(t.status)}</span><div class="muted mini">${esc(t.description||'')} · ${vs.length} version(s)${latest?' · latest '+esc(latest.version_code)+' '+esc(latest.status):''}</div></div>`}).join('')||'<div class="muted">No templates.</div>'}
+function buildPayload(){const code=$('#code').value.trim().toUpperCase(),name=$('#name').value.trim(),description=$('#description').value.trim(),version=$('#version').value.trim(),schema=$('#schema').value.trim(),client=$('#client').value.trim(),locCode=$('#locCode').value.trim(),locName=$('#locName').value.trim();if(!/^[A-Z0-9][A-Z0-9_-]{1,29}$/.test(code))throw new Error('Template code must be 2-30 letters, numbers, underscores, or hyphens.');if(!name)throw new Error('Industry name is required.');if(!/^\d+\.\d+\.\d+$/.test(version))throw new Error('Version must use x.y.z format, for example 1.0.0.');if(!schema||!client)throw new Error('Schema version and minimum CTOD client are required.');if(!locCode||!locName)throw new Error('Starter location code and name are required.');const cleanRoles=roles.map((r,i)=>({title:r.title.trim(),sort_order:(i+1)*10})).filter(r=>r.title);const cleanQuestions=questions.map((q,i)=>({question_code:code+'-'+String(i+1).padStart(3,'0'),section_code:(q.section_name||'General').toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_|_$/g,''),section_name:(q.section_name||'General').trim(),question_text:q.question_text.trim(),category:(q.section_name||'General').trim(),sort_order:(i+1)*10,requires_rating:!!q.requires_rating,requires_reason:!!q.requires_reason})).filter(q=>q.question_text);if(!cleanRoles.length)throw new Error('Add at least one starter role.');if(!cleanQuestions.length)throw new Error('Add at least one starter review question.');return{code,name,description,version,schema,client,configuration:{default_location:{location_code:locCode,name:locName},roles:cleanRoles,questions:cleanQuestions}}}
+async function boot(){try{const{data:{session}}=await sb.auth.getSession();if(!session)return;const aal=await sb.auth.mfa.getAuthenticatorAssuranceLevel();if(aal.error||aal.data.currentLevel!=='aal2')return;await call('home');$('#gate').classList.add('hidden');$('#app').classList.remove('hidden');resetDNA();render();await loadCatalog()}catch(e){$('#gate').innerHTML='<b>Owner access required.</b><div class="bad">'+esc(e.message)+'</div><a class="btn primary" href="/owner">Open Owner Console</a>'}}
+$('#addRole').onclick=()=>{roles.push({title:''});render()};$('#addQuestion').onclick=()=>{questions.push({section_name:'Performance',question_text:'',requires_rating:true,requires_reason:true});render()};['code','name','version','schema','client','locCode','locName'].forEach(id=>$('#'+id).oninput=summary);$('#loadExisting').onclick=()=>{try{loadSelected();$('#msg').textContent=''}catch(e){$('#msg').className='bad';$('#msg').textContent=e.message}};$('#newIndustry').onclick=()=>{setNewMode();$('#msg').textContent=''};$('#refresh').onclick=()=>loadCatalog().catch(e=>{$('#msg').className='bad';$('#msg').textContent=e.message});
+$('#save').onclick=async()=>{try{const p=buildPayload(),publish=$('#publish').checked;if(publish&&!confirm((editingTemplateId?'Publish new version ':'Publish new industry ')+p.code+' v'+p.version+'? Existing customers will not be silently changed.'))return;$('#save').disabled=true;$('#msg').className='muted';$('#msg').textContent=editingTemplateId?'Creating new immutable template version...':'Creating industry and first version atomically...';if(editingTemplateId){await call('create_template_version',{template_id:editingTemplateId,version_code:p.version,schema_version:p.schema,minimum_client_version:p.client,configuration:p.configuration,publish})}else{const duplicate=(catalog.templates||[]).some(t=>t.template_code===p.code);if(duplicate)throw new Error('Template code '+p.code+' already exists. Load that industry to create a new version.');await call('create_industry_bundle',{template_code:p.code,name:p.name,description:p.description,version_code:p.version,schema_version:p.schema,minimum_client_version:p.client,configuration:p.configuration,publish})}$('#msg').className='good';$('#msg').textContent=(editingTemplateId?'Template version':'Industry template')+' created successfully. Existing customer configurations were not modified.';await loadCatalog();if(editingTemplateId){$('#existing').value=editingTemplateId;loadSelected()}}catch(e){$('#msg').className='bad';$('#msg').textContent=e.message}finally{$('#save').disabled=false}};
+boot();
+</script>
+</body>
+</html>
