@@ -1,10 +1,7 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { assertSandboxEmailAllowed,ctodConfig,ctodSupabase as sb } from './ctod-config.js';
 import { formatDate,uniqueGoals } from './display-utils.js?v=20260810-001';
 
-const SUPABASE_URL='https://wezcuprboyvbmlnuqdoi.supabase.co';
-const SUPABASE_KEY='sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5';
-const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
-window.ctodSupabase=sb;
+const SUPABASE_URL=ctodConfig.supabaseUrl;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 const fmt=formatDate;
@@ -24,7 +21,7 @@ function publishWorkspaceContext(user,scopeRows=[]){
   }).filter(Boolean);
   const one=scopedLocations.length===1?scopedLocations[0]:null;
   const workspaceLabel=isMaster?'Master Workspace · Company-wide':one?`LOC${String(one.location_code).padStart(3,'0')} Workspace · ${one.name}`:scopedLocations.length?`${scopedLocations.length} Location Workspace`:'No active location access';
-  const context={companyId:membership?.company_id||null,role,isMaster,locations:scopedLocations,userId:user?.id||null,email:user?.email||null,workspaceLabel};
+  const context={companyId:membership?.company_id||null,role,isMaster,isOperator:false,isActiveCompany:true,locations:scopedLocations,userId:user?.id||null,email:user?.email||null,workspaceLabel};
   window.ctodWorkspaceContext=context;
   document.documentElement.dataset.ctodWorkspace=isMaster?'master':'location';
   document.documentElement.dataset.ctodRole=role||'none';
@@ -33,6 +30,42 @@ function publishWorkspaceContext(user,scopeRows=[]){
   if(!workspaceReadyResolved){workspaceReadyResolved=true;resolveWorkspaceReady(context)}
   document.dispatchEvent(new CustomEvent('ctod:workspace-ready',{detail:context}));
   return context;
+}
+
+function publishOperatorContext(user,operator){
+  const role=operator?.role||'read_only';
+  const workspaceLabel='CTOD Platform · Operator Control Plane';
+  const context={companyId:null,role,isMaster:false,isOperator:true,isActiveCompany:false,locations:[],userId:user?.id||null,email:user?.email||null,workspaceLabel,operator};
+  window.ctodWorkspaceContext=context;
+  document.documentElement.dataset.ctodWorkspace='operator';
+  document.documentElement.dataset.ctodRole=role;
+  if(!workspaceReadyResolved){workspaceReadyResolved=true;resolveWorkspaceReady(context)}
+  document.dispatchEvent(new CustomEvent('ctod:workspace-ready',{detail:context}));
+  return context;
+}
+
+function publishInactiveContext(user,latestMembership,company){
+  const companyName=company?.name||'CTOD customer workspace';
+  const isSuspended=company?.status==='inactive';
+  const workspaceLabel=isSuspended?`${companyName} · Access paused`:'No active customer workspace';
+  const context={companyId:latestMembership?.company_id||null,role:latestMembership?.role||null,isMaster:false,isOperator:false,isActiveCompany:false,locations:[],userId:user?.id||null,email:user?.email||null,workspaceLabel,companyStatus:company?.status||null};
+  window.ctodWorkspaceContext=context;
+  document.documentElement.dataset.ctodWorkspace='inactive';
+  document.documentElement.dataset.ctodRole=latestMembership?.role||'none';
+  $('#accountStateTitle').textContent=isSuspended?'Customer access is paused':'No workspace is assigned';
+  $('#accountStateMessage').textContent=isSuspended
+    ? `${companyName} is currently suspended or closed. Your sign-in remains intact, but customer data is unavailable until a CTOD platform administrator reactivates the account.`
+    : 'This sign-in is valid, but it does not have an active customer workspace. Contact your company owner or CTOD support.';
+  $('#accountStateWho').textContent=user?.email||'';
+  $('#accountState').hidden=false;
+  if(!workspaceReadyResolved){workspaceReadyResolved=true;resolveWorkspaceReady(context)}
+  document.dispatchEvent(new CustomEvent('ctod:workspace-ready',{detail:context}));
+  return context;
+}
+
+async function probeOperator(){
+  const {data}=await sb.functions.invoke('ctod-operator-admin',{body:{action:'context'}});
+  return data?.ok&&data?.operator?data:null;
 }
 
 function setTab(which){
@@ -78,21 +111,38 @@ async function signin(){
 }
 
 async function showApp(){
-  $('#auth').hidden=true;$('#inviteSetup').hidden=true;$('#app').hidden=false;
-  const u=await sb.auth.getUser();$('#who').textContent=u.data.user?.email||'';
-  await loadMembership();await loadAll();await resumePendingReview();
+  $('#auth').hidden=true;$('#inviteSetup').hidden=true;$('#app').hidden=true;$('#operatorApp').hidden=true;$('#accountState').hidden=true;
+  const u=await sb.auth.getUser();const user=u.data.user;
+  if(!user){await sb.auth.signOut();location.reload();return}
+  const operator=await probeOperator();
+  if(operator){
+    publishOperatorContext(user,operator.operator);
+    $('#operatorApp').hidden=false;
+    return;
+  }
+  const context=await loadMembership(user);
+  if(!context?.isActiveCompany)return;
+  $('#app').hidden=false;
+  await loadAll();await resumePendingReview();
 }
 
-async function loadMembership(){
-  const u=(await sb.auth.getUser()).data.user;
-  const r=await sb.from('company_memberships').select('company_id,role,active').eq('user_id',u.id).eq('active',true).maybeSingle();
+async function loadMembership(u){
+  const r=await sb.from('company_memberships').select('company_id,role,active,created_at').eq('user_id',u.id).eq('active',true).order('created_at',{ascending:false}).limit(1).maybeSingle();
   membership=r.data;
+  if(!membership){
+    const latest=await sb.from('company_memberships').select('company_id,role,active,created_at').eq('user_id',u.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+    const company=latest.data?.company_id
+      ? await sb.from('companies').select('id,name,status').eq('id',latest.data.company_id).maybeSingle()
+      : {data:null};
+    return publishInactiveContext(u,latest.data,company.data);
+  }
   const isOwner=['owner','admin','executive'].includes(membership?.role);
   const access=membership?await sb.from('user_location_access').select('location_id,access_role,locations(location_code,name)').eq('company_id',membership.company_id).eq('user_id',u.id).eq('active',true):{data:[]};
-  publishWorkspaceContext(u,access.data||[]);
+  const context=publishWorkspaceContext(u,access.data||[]);
   $('#tabMaster').style.display=isOwner?'':'none';
   $('#tabAccess').style.display=['owner','admin'].includes(membership?.role)?'':'none';
   setTab(isOwner?'master':'reviews');
+  return context;
 }
 
 async function loadAll(){
@@ -269,6 +319,7 @@ async function loadAccess(){
 async function sendInvite(){
   const email=$('#inviteTargetEmail').value.trim(),role=$('#inviteRole').value,ids=[...document.querySelectorAll('#locationOptions input:checked')].map(x=>x.value);
   if(!email){$('#accessMsg').textContent='Enter an email.';return}
+  try{assertSandboxEmailAllowed(email)}catch(error){$('#accessMsg').textContent=error.message;return}
   const cr=await sb.rpc('create_access_invite',{p_email:email,p_role:role,p_location_ids:ids});if(cr.error){$('#accessMsg').textContent=cr.error.message;return}
   const session=(await sb.auth.getSession()).data.session;
   const deliveryRequestId=crypto.randomUUID();
@@ -278,4 +329,4 @@ async function sendInvite(){
   await loadAccess();
 }
 
-$('#activateInvite').onclick=activateInvite;$('#signin').onclick=signin;$('#logout').onclick=async()=>{await sb.auth.signOut();location.reload()};$('#tabReviews').onclick=()=>setTab('reviews');$('#tabMaster').onclick=()=>setTab('master');$('#tabAccess').onclick=()=>setTab('access');$('#sendInvite').onclick=sendInvite;boot();
+$('#activateInvite').onclick=activateInvite;$('#signin').onclick=signin;$('#logout').onclick=async()=>{await sb.auth.signOut();location.reload()};$('#accountLogout').onclick=async()=>{await sb.auth.signOut();location.reload()};$('#tabReviews').onclick=()=>setTab('reviews');$('#tabMaster').onclick=()=>setTab('master');$('#tabAccess').onclick=()=>setTab('access');$('#sendInvite').onclick=sendInvite;boot();

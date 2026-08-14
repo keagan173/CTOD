@@ -1,6 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const sb=createClient('https://wezcuprboyvbmlnuqdoi.supabase.co','sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5');
+import { ctodSupabase as sb } from './ctod-config.js';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 let roster=[], membership=null, rendering=false;

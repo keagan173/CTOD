@@ -1,0 +1,9 @@
+{
+  "environment": "production",
+  "appName": "CTOD",
+  "appUrl": "https://ctod.vercel.app/",
+  "supabaseUrl": "https://wezcuprboyvbmlnuqdoi.supabase.co",
+  "supabasePublishableKey": "sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5",
+  "productionProjectRef": "wezcuprboyvbmlnuqdoi",
+  "emailAllowlist": []
+}

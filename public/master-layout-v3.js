@@ -1,5 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-const ml3=createClient('https://wezcuprboyvbmlnuqdoi.supabase.co','sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5');
+import { ctodSupabase as ml3 } from './ctod-config.js';
 const $m=s=>document.querySelector(s);
 let busy=false;
 

@@ -21,7 +21,8 @@ Manual `vercel deploy` releases are not the production release process and must 
 - Production branch: `main`
 - Framework preset: Other
 - Root directory: repository root
-- Output directory: `public` (declared in `vercel.json`)
+- Build command: `npm run build`
+- Output directory: `dist` (generated from `public` plus environment-specific `runtime-config.js`)
 - Production hostname during transition: `ctod.vercel.app`
 - Canonical hostname when DNS is connected: `app.ctodsystem.com`
 
@@ -36,6 +37,30 @@ Manual `vercel deploy` releases are not the production release process and must 
 7. Releases that change the database contract apply versioned Supabase migrations before the dependent frontend commit is published.
 8. Database releases are not accepted until post-migration data checks and the Supabase security advisor confirm that RLS-safe view/function behavior remains intact.
 9. Corrective production migrations must be committed beside the original migration so source control and live database history remain aligned.
+
+## Environment selection and isolation
+
+- `VERCEL_ENV=production` selects the checked-in production public configuration and refuses any Supabase ref other than `wezcuprboyvbmlnuqdoi`.
+- `VERCEL_ENV=preview` selects the checked-in sandbox public configuration and refuses the production ref.
+- Local builds require `CTOD_ENVIRONMENT=production` or `CTOD_ENVIRONMENT=sandbox` explicitly.
+- Only Supabase publishable browser keys are accepted by the build.
+- The browser repeats the ref/environment validation before creating its single Supabase client.
+- Production and sandbox sessions use different local-storage keys.
+
+## Sandbox delivery path
+
+The sandbox is not a production release fallback. It has its own resources:
+
+- Vercel project: `ctod-sandbox`
+- Supabase project: `zgwkjyezpgboysiklodj`
+- stable protected alias: `https://ctod-sandbox-keaganelsberry-4694s-projects.vercel.app`
+- reset/reseed runbook: `docs/SANDBOX_ARCHITECTURE.md`
+
+The Vercel team currently protects the sandbox aliases with Vercel Authentication. That protection was preserved. A change to public accessibility requires an explicit project-owner decision; it does not justify changing the production `ctod` project or uploading the build to an unrelated host.
+
+The sandbox also hosts the CTOD Operator Control Plane. The browser route is selected only after the authenticated `ctod-operator-admin` Edge Function confirms an active private platform-operator identity. Operator identities must have zero customer memberships. The Edge Function, invitation functions, and operator migrations must be deployed and accepted against the sandbox Supabase project before the dependent sandbox web artifact is published.
+
+Production promotion of the operator layer requires a separate release decision covering, in order: production migration review, operator identity bootstrap, Edge Function deployment, frontend merge through GitHub `main`, and a post-deploy privacy/lifecycle acceptance pass. A sandbox control-plane deployment is never promoted directly to the production project.
 
 ## Foundation smoke test
 
@@ -69,6 +94,6 @@ Validated review-lifecycle milestone:
 - The QA Location 040 manager completed the isolated employee's two-cycle review lifecycle.
 - Review reopening, draft persistence, finalization, next-review creation, finalized scoring, promotion readiness, two-cycle coaching resolution, Employee 360, Review History, and talent reporting passed.
 - The two-page summary builder contains performance, career, goals, coaching, compensation, manager summary, and employee comments. Native browser printing remains a required spot check with the first real employee because the temporary print frame closes after the browser print action.
-- Production retains the isolated fake QA employee and its evidence until an explicit, narrowly scoped cleanup decision is made.
+- The isolated fake QA employee and dependent operational evidence were removed after the acceptance record was preserved.
 
-The next release gate is cleanup of only the fake QA identity if approved, followed by controlled onboarding of the first real Location 040 employee.
+The isolated fake production QA identity was removed after the acceptance record was captured. The current release gates are review of the 1.1.0 sandbox-infrastructure branch, confirmation of sandbox accessibility policy, and then controlled onboarding of the first real Location 040 employee through the normal production release path.

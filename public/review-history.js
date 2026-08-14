@@ -1,6 +1,5 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { ctodSupabase as rh } from './ctod-config.js';
 import { formatDate,uniqueGoals } from './display-utils.js?v=20260810-001';
-const rh=createClient('https://wezcuprboyvbmlnuqdoi.supabase.co','sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5');
 const $h=s=>document.querySelector(s), escH=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 const fmtH=formatDate;
 let rosterH=[];

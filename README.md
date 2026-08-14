@@ -24,6 +24,33 @@ This repository is the permanent source of truth for the CTOD application.
 
 The prior Vercel URL remains the temporary application endpoint until the production domain is connected.
 
+## Isolated Sandbox
+
+The persistent CTOD Sandbox uses a separate Supabase database/Auth tenant and a separate Vercel project. It has one owner login and three fake employee records; employees themselves never log in. Environment guards refuse a sandbox build pointed at production, and every sandbox page displays an unmistakable fake-data banner.
+
+- [Sandbox architecture, reset, and verification record](docs/SANDBOX_ARCHITECTURE.md)
+- Sandbox Supabase ref: `zgwkjyezpgboysiklodj`
+- Protected Vercel alias: `https://ctod-sandbox-keaganelsberry-4694s-projects.vercel.app`
+
+## CTOD Operator Control Plane
+
+CTOD platform operations are intentionally separate from every customer workspace. A platform operator is an Auth identity in `private.platform_operators`, never an employee record and never a `company_memberships` row.
+
+The operator console supports:
+
+- customer provisioning from the customer-neutral Blank Standard Master
+- trial, activation, reversible suspension, closure, and reactivation
+- aggregate customer health and setup diagnostics
+- deployment, backup, plan, and support metadata
+- CTOD Core release assignment and rollback history
+- customer owner/leader account support without employee or review-content access
+- independent platform administrator, support, and read-only operator roles
+- immutable operator audit events with server-generated request IDs
+
+The browser never receives the service key. It calls the authenticated `ctod-operator-admin` Edge Function, which verifies the signed-in Auth user and then invokes service-role-only operator RPCs. Authenticated customer roles have no execute privilege on those RPCs and no access to the private control-plane tables.
+
+- [Operator security and sandbox acceptance record](docs/CTOD_OPERATOR_CONTROL_PLANE_ACCEPTANCE.md)
+
 ## Required User Experience
 
 ### Owner / Master
@@ -89,7 +116,7 @@ Existing users must be reassigned without creating a second account. Access chan
 - finalized reviews automatically update Master reporting and talent pipeline
 - finalized review history follows the employee's six-digit identity across location transfers
 
-## Current Rollout Status - 2026-08-11
+## Current Rollout Status - 2026-08-12
 
 Completed / established:
 
@@ -117,8 +144,14 @@ Completed / established:
 - date-only rendering, goal deduplication, Review History, and Talent Trajectory reporting repaired
 - compensation, manager summary, and employee comments restored to finalized review reporting
 - one future review is created after finalization without duplicating the active review
-- isolated fake QA evidence retained pending deliberate cleanup approval
+- isolated fake QA evidence removed after the acceptance record was preserved
 - `ctodsystem.com` purchased and Resend configured for CTOD invitations
+- isolated CTOD Sandbox Supabase project, Auth tenant, schema baseline, safe configuration seed, reset/seed procedure, and one Sandbox Master login established
+- separate `ctod-sandbox` Vercel project deployed with team authentication protection
+- production/sandbox runtime configuration centralized with build-time and browser-time project-ref guards
+- customer-neutral CTOD 002 templates, blank-company provisioning, configuration inheritance, and single-site growth model integrated with the isolated sandbox branch
+- CTOD Operator Control Plane implemented and accepted against the isolated sandbox database
+- dedicated Sandbox Operator identity established with zero customer memberships
 
 ### Validated production release
 
@@ -128,9 +161,9 @@ The current production acceptance record, locked decisions, data state, and hand
 - [Current project handoff](docs/CURRENT_HANDOFF.md)
 - [Changelog](CHANGELOG.md)
 
-The validated application release is GitHub commit `4ab3f45`. The isolated QA lifecycle currently contains two finalized reviews, one future review, zero active coaching items, and one active goal for `QA TEST · 990040`.
+The historical review-lifecycle acceptance release is GitHub commit `4ab3f45`. Its isolated fake QA employee and dependent operational evidence were subsequently removed. The observed production baseline at the start and end of sandbox work contains zero employees, assignments, reviews, answers, coaching moments, and goals. Production Auth (3 users), locations (55), and audit events (13) remained unchanged.
 
-The next controlled step is to decide whether to retain or remove that exact fake QA evidence, confirm the resulting baseline, and then onboard the first real Location 040 employee. Cleanup must be narrowly targeted; legitimate employee history is never bulk-deleted.
+The sandbox candidate is version 1.1.0 on branch `agent/ctod-operator-control-plane`. Its database and Edge Function acceptance ran only against sandbox project `zgwkjyezpgboysiklodj`. Production publishing, production migrations, and any merge to GitHub `main` remain separate approvals.
 
 ## Engineering Rules
 
@@ -144,5 +177,6 @@ The next controlled step is to decide whether to retain or remove that exact fak
 8. Location access belongs to roles/users, while employee history remains attached to the permanent six-digit employee identity.
 9. Finalized reviews are read-only records.
 10. Production secrets and API keys must never be committed to GitHub.
+11. Employee roster records are not login identities; only explicitly provisioned users belong in Supabase Auth.
 
-Baseline updated: 2026-08-11.
+Baseline updated: 2026-08-12.

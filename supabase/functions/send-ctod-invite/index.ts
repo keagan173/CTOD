@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "jsr:@supabase/supabase-js@2.112.2";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +9,46 @@ const cors = {
 
 const DEFAULT_APP_URL = "https://ctod.vercel.app/";
 const DEFAULT_FROM = "CTOD <invites@ctodsystem.com>";
+const DEFAULT_PRODUCTION_PROJECT_REF = "wezcuprboyvbmlnuqdoi";
+const CTOD_SANDBOX_PROJECT_REF = "zgwkjyezpgboysiklodj";
+const BUILT_IN_SANDBOX_EMAILS = new Set([
+  "sandbox-master@ctod.test",
+  "sandbox-operator@ctod.test",
+  "sandbox-customer-owner@ctod.test",
+]);
+
+function currentProjectRef() {
+  const url = new URL(Deno.env.get("SUPABASE_URL") || "https://invalid.supabase.co");
+  return url.hostname.match(/^([a-z0-9-]+)\.supabase\.co$/i)?.[1] || "";
+}
+
+function ctodEnvironment() {
+  const configured = String(Deno.env.get("CTOD_ENVIRONMENT") || "").trim().toLowerCase();
+  if (configured && !["production", "sandbox"].includes(configured)) {
+    throw new Error("CTOD_ENVIRONMENT must be production or sandbox");
+  }
+  if (configured) return configured;
+  const productionRef = Deno.env.get("CTOD_PRODUCTION_PROJECT_REF") || DEFAULT_PRODUCTION_PROJECT_REF;
+  return currentProjectRef() === productionRef ? "production" : "sandbox";
+}
+
+function assertSandboxEmailAllowed(email: string) {
+  if (ctodEnvironment() !== "sandbox") return;
+  const normalized = email.trim().toLowerCase();
+  const allowed = String(Deno.env.get("CTOD_EMAIL_ALLOWLIST") || "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  const builtInAllowed =
+    currentProjectRef() === CTOD_SANDBOX_PROJECT_REF && BUILT_IN_SANDBOX_EMAILS.has(normalized);
+  if (!allowed.includes(normalized) && !builtInAllowed) {
+    throw new Error(
+      allowed.length
+        ? "Sandbox email blocked. Use an approved test address."
+        : "Sandbox email delivery is disabled until CTOD_EMAIL_ALLOWLIST is configured.",
+    );
+  }
+}
 
 function escapeHtml(value: unknown) {
   return String(value ?? "")
@@ -26,7 +66,9 @@ function humanizeRole(value: unknown) {
 }
 
 function buildInviteUrl(token: string) {
-  const configured = Deno.env.get("CTOD_APP_URL") || DEFAULT_APP_URL;
+  const configured =
+    Deno.env.get("CTOD_APP_URL") || (ctodEnvironment() === "production" ? DEFAULT_APP_URL : "");
+  if (!configured) throw new Error("Sandbox invitation URL is not configured");
   const appUrl = new URL(configured);
   if (appUrl.protocol !== "https:") throw new Error("CTOD_APP_URL must use HTTPS");
   appUrl.pathname = "/";
@@ -59,7 +101,7 @@ function buildInviteEmail({
   const safeUrl = escapeHtml(inviteUrl);
 
   return {
-    subject: `Your CTOD ${roleLabel} invitation${subjectLocation}`,
+    subject: `${ctodEnvironment() === "sandbox" ? "[CTOD SANDBOX] " : ""}Your CTOD ${roleLabel} invitation${subjectLocation}`,
     text: [
       "You have been invited to CTOD.",
       "",
@@ -189,6 +231,14 @@ Deno.serve(async (req: Request) => {
       .single();
     if (invErr || !inv) throw new Error("Invite not found");
 
+    const { data: company, error: companyErr } = await admin
+      .from("companies")
+      .select("status")
+      .eq("id", inv.company_id)
+      .single();
+    if (companyErr || !company) throw new Error("Customer not found");
+    if (company.status !== "active") return json({ error: "Customer access is suspended" }, 409);
+
     const { data: ownerMembership } = await admin
       .from("company_memberships")
       .select("role,active")
@@ -196,9 +246,12 @@ Deno.serve(async (req: Request) => {
       .eq("user_id", user.id)
       .eq("active", true)
       .maybeSingle();
-    if (!ownerMembership || !["owner", "admin"].includes(ownerMembership.role)) {
-      return json({ error: "Owner/Admin access required" }, 403);
+    let authorized = !!ownerMembership && ["owner", "admin"].includes(ownerMembership.role);
+    if (!authorized) {
+      const { data: operator } = await admin.rpc("operator_service_authorize", { p_user_id: user.id });
+      authorized = ["platform_admin", "support"].includes(String(operator?.role || ""));
     }
+    if (!authorized) return json({ error: "Owner/Admin or operator access required" }, 403);
 
     if (inv.accepted_at || inv.revoked_at || new Date(inv.expires_at) <= new Date()) {
       throw new Error("Invite is no longer active");
@@ -211,6 +264,7 @@ Deno.serve(async (req: Request) => {
     if (locErr) throw locErr;
 
     const normalized = String(inv.email).trim().toLowerCase();
+    assertSandboxEmailAllowed(normalized);
     const inviteUrl = buildInviteUrl(String(inv.token));
     const locationLabels = (locs || []).map((row: any) => {
       const location = Array.isArray(row.locations) ? row.locations[0] : row.locations;

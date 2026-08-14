@@ -1,8 +1,6 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { ctodConfig,ctodSupabase as sb } from './ctod-config.js';
 
-const SUPABASE_URL='https://wezcuprboyvbmlnuqdoi.supabase.co';
-const SUPABASE_KEY='sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5';
-const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
+const SUPABASE_URL=ctodConfig.supabaseUrl;
 const $=s=>document.querySelector(s);
 const inviteToken=new URLSearchParams(location.search).get('invite');
 
@@ -18,7 +16,7 @@ async function validateInvite(){
       return;
     }
     if(!data.active){
-      $('#inviteMsg').textContent=data.accepted?'This invitation has already been activated.':data.expired?'This invitation has expired.':data.revoked?'This invitation was revoked.':'Invite is no longer active.';
+      $('#inviteMsg').textContent=data.inactive_reason||(data.accepted?'This invitation has already been activated.':data.expired?'This invitation has expired.':data.revoked?'This invitation was revoked.':'Invite is no longer active.');
       return;
     }
     $('#inviteEmail').textContent=data.email+' • '+String(data.role||'').replaceAll('_',' ');

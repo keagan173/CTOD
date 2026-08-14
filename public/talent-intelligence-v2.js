@@ -1,9 +1,6 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { ctodSupabase as sbt } from './ctod-config.js';
 import { formatDate,uniqueGoals } from './display-utils.js?v=20260810-001';
 
-const SUPABASE_URL='https://wezcuprboyvbmlnuqdoi.supabase.co';
-const SUPABASE_KEY='sb_publishable_BFhSdHnbppOmw98ons8iSw_MtkOnRg5';
-const sbt=createClient(SUPABASE_URL,SUPABASE_KEY);
 const $t=s=>document.querySelector(s);
 const $$t=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
