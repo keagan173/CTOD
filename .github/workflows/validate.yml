@@ -24,6 +24,11 @@ jobs:
           test -f public/owner-support.html
           test -f public/customer-workspace-v4.js
           test -f public/customer-workspace-v4.css
+          test -f public/master-map-v2.js
+          test -f public/master-experience-v5.js
+          test -f public/master-intelligence-v6.js
+          test -f public/review-question-analytics.js
+          test -f public/review-summary-v2.js
           test -f vercel.json
           test -f README.md
 
@@ -49,6 +54,39 @@ jobs:
           grep -q 'id="tabSuccession"' public/index.html
           grep -q 'customer-workspace-v4.js' public/index.html
           node -e "const h=require('fs').readFileSync('public/index.html','utf8'); const ids=['tabMaster','tabReviews','tabCoaching','tabEmployees','tabPeople','tabSchedule','tabSuccession']; let last=-1; for(const id of ids){const i=h.indexOf('id=\"'+id+'\"'); if(i<0||i<last) process.exit(1); last=i;}"
+
+      - name: Validate approved Master experience contract
+        run: |
+          grep -q 'master-experience-v5.js' public/index.html
+          grep -q 'master-intelligence-v6.js' public/index.html
+          grep -q 'review-question-analytics.js' public/index.html
+          grep -q 'company_location_accountability_map' public/master-map-v2.js
+          grep -q 'PRESENTATION' public/presentation-mode.js
+          if grep -q "from('locations')" public/master-map-v2.js; then
+            echo 'Master map must use the company-wide aggregate RPC, not direct RLS-scoped location queries.'
+            exit 1
+          fi
+
+      - name: Validate two-page summary intelligence contract
+        run: |
+          grep -q 'promotion_readiness' public/review-summary-v2.js
+          grep -q 'specialist_growth_path' public/review-summary-v2.js
+          grep -q 'next_year_goal' public/review-summary-v2.js
+          grep -q 'safety_priority_response' public/review-summary-v2.js
+          grep -q 'career_feeling_response' public/review-summary-v2.js
+          grep -q 'work_preference_response' public/review-summary-v2.js
+          grep -q 'relocation_openness_response' public/review-summary-v2.js
+          grep -q 'Print 2-Page Review Summary' public/review-summary-v2.js
+
+      - name: Validate intelligence Explorer contract
+        run: |
+          grep -q 'Employee Voice' public/master-intelligence-v6.js
+          grep -q 'Reviews' public/master-intelligence-v6.js
+          grep -q 'Coaching' public/master-intelligence-v6.js
+          grep -q 'Goals' public/master-intelligence-v6.js
+          grep -q 'Career & Readiness' public/master-intelligence-v6.js
+          grep -q 'Compensation' public/master-intelligence-v6.js
+          grep -q 'review_question_analytics' public/review-question-analytics.js
 
       - name: Validate JSON configuration
         run: |
