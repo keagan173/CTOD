@@ -1,4 +1,4 @@
-const BRAND_VERSION='20260815-0125';
+const BRAND_VERSION='20260815-0200';
 const PRIMARY=`/branding/ctod-logo-1-primary.svg?v=${BRAND_VERSION}`;
 const PEOPLE=`/branding/ctod-logo-2-people-shield.svg?v=${BRAND_VERSION}`;
 const CITY=`/branding/ctod-logo-3-city-ring.svg?v=${BRAND_VERSION}`;
@@ -18,9 +18,16 @@ function installBrandStyles(){
   @media(max-width:760px){.ctod-app-brandbar{padding:10px 14px;min-height:84px}.ctod-primary-brand{width:265px!important;height:68px!important;max-width:78vw!important}.ctod-brandbar-copy{display:none}.ctod-view-brandmark{width:78px;height:44px;right:10px;top:9px;opacity:.42}}
   `;document.head.appendChild(s);
 }
-function installMainBrandbar(){const app=document.querySelector('#app');if(!app||app.querySelector(':scope > .ctod-app-brandbar'))return;const bar=document.createElement('div');bar.className='ctod-app-brandbar';bar.innerHTML=`<img class="ctod-primary-brand" src="${PRIMARY}" alt="CTOD — Building People. Driving Performance."><div class="ctod-brandbar-copy"><div class="ctod-brandbar-kicker">Career & Talent Optimization Dashboard</div><div class="ctod-brandbar-name">Building People. Driving Performance.</div></div>`;app.prepend(bar)}
+function installMainBrandbar(){
+  const app=document.querySelector('#app');if(!app)return;
+  const stable=app.querySelector(':scope > .ctod-customer-brandbar');
+  const generated=[...app.querySelectorAll(':scope > .ctod-app-brandbar')];
+  if(stable){generated.forEach(x=>x.remove());return}
+  if(generated.length){generated.slice(1).forEach(x=>x.remove());return}
+  const bar=document.createElement('div');bar.className='ctod-app-brandbar';bar.innerHTML=`<img class="ctod-primary-brand" src="${PRIMARY}" alt="CTOD — Building People. Driving Performance."><div class="ctod-brandbar-copy"><div class="ctod-brandbar-kicker">Career & Talent Optimization Dashboard</div><div class="ctod-brandbar-name">Building People. Driving Performance.</div></div>`;app.prepend(bar)
+}
 function addWatermark(host,src){if(!host||host.querySelector(':scope > .ctod-view-brandmark'))return;host.classList.add('ctod-view-brand');const img=document.createElement('img');img.className='ctod-view-brandmark';img.src=src;img.alt='';img.setAttribute('aria-hidden','true');host.prepend(img)}
 function addRibbon(host,src){if(!host||host.querySelector(':scope > .ctod-brand-ribbon'))return;const r=document.createElement('div');r.className='ctod-brand-ribbon';r.innerHTML=`<img src="${src}" alt="" aria-hidden="true">`;host.prepend(r)}
 function decorateViews(){const master=document.querySelector('#masterView .master-shell');if(master){addWatermark(master,PEOPLE);if(!master.querySelector(':scope > .ctod-gold-rule')){const rule=document.createElement('div');rule.className='ctod-gold-rule';master.querySelector('.master-hero')?.insertAdjacentElement('afterend',rule)}}const test=document.querySelector('#testReviewView .test-review-shell');if(test)addWatermark(test,PERFORMANCE);const reviews=document.querySelector('#reviewsView');if(reviews)addRibbon(reviews,CITY);const coaching=document.querySelector('#coachingView');if(coaching)addRibbon(coaching,PEOPLE);const employees=document.querySelector('#employeesView');if(employees)addRibbon(employees,PERFORMANCE);const people=document.querySelector('#peopleView');if(people)addRibbon(people,CITY)}
 function run(){installBrandStyles();installMainBrandbar();decorateViews()}
-run();setTimeout(run,300);setTimeout(run,900);new MutationObserver(()=>requestAnimationFrame(run)).observe(document.documentElement,{childList:true,subtree:true});
+run();setTimeout(run,300);setTimeout(run,900);

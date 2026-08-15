@@ -1,0 +1,8 @@
+const $=s=>document.querySelector(s);
+const VIEWS=['masterView','reviewsView','coachingView','employeesView','peopleView','scheduleView','successionView','accessView'];
+const TABS=['tabMaster','tabReviews','tabCoaching','tabEmployees','tabPeople','tabSchedule','tabSuccession','tabAccess'];
+function cleanBrand(){const app=$('#app');if(!app)return;const stable=app.querySelector(':scope > .ctod-customer-brandbar');const generated=[...app.querySelectorAll(':scope > .ctod-app-brandbar')];if(stable)generated.forEach(x=>x.remove());const statics=[...app.querySelectorAll(':scope > .ctod-customer-brandbar')];statics.slice(1).forEach(x=>x.remove())}
+function openMaster(){VIEWS.forEach(id=>$('#'+id)?.classList.add('hidden'));TABS.forEach(id=>$('#'+id)?.classList.remove('active'));$('#masterView')?.classList.remove('hidden');$('#tabMaster')?.classList.add('active');document.dispatchEvent(new CustomEvent('ctod:master-rendered'));setTimeout(()=>window.ctodRenderMasterMap?.(false),120)}
+function lockTabs(){const tabs=$('#app>.tabs'),master=$('#tabMaster');if(!tabs||!master)return;master.hidden=false;master.style.display='';master.textContent='Master';if(tabs.firstElementChild!==master)tabs.insertBefore(master,tabs.firstElementChild);if(!master.dataset.shellGuard){master.dataset.shellGuard='1';master.addEventListener('click',e=>{e.preventDefault();openMaster()})}const people=$('#tabPeople');if(people){people.hidden=false;people.style.display=''}const depth=$('#tabSuccession');if(depth){depth.hidden=false;depth.style.display='';depth.textContent='Depth Chart'}}
+function stabilize(){cleanBrand();lockTabs()}
+stabilize();setTimeout(stabilize,200);setTimeout(stabilize,800);document.addEventListener('ctod:workspace-ready',stabilize);window.ctodOpenMaster=openMaster;

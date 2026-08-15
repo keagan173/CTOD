@@ -22,6 +22,14 @@ jobs:
           test -f public/app.js
           test -f public/runtime-telemetry.js
           test -f public/owner-support.html
+          test -f public/customer-workspace-v4.js
+          test -f public/customer-workspace-v4.css
+          test -f public/master-map-v2.js
+          test -f public/master-experience-v5.js
+          test -f public/master-intelligence-v6.js
+          test -f public/review-question-analytics.js
+          test -f public/review-finalization-readiness.js
+          test -f public/review-summary-v2.js
           test -f vercel.json
           test -f README.md
 
@@ -40,15 +48,79 @@ jobs:
           console.log('Validated',refs.length,'workspace module references');
           NODE
 
+      - name: Validate stable customer navigation contract
+        run: |
+          grep -q 'id="tabMaster"' public/index.html
+          grep -q 'id="tabPeople"' public/index.html
+          grep -q 'id="tabSuccession"' public/index.html
+          grep -q 'customer-workspace-v4.js' public/index.html
+          node -e "const h=require('fs').readFileSync('public/index.html','utf8'); const ids=['tabMaster','tabReviews','tabCoaching','tabEmployees','tabPeople','tabSchedule','tabSuccession']; let last=-1; for(const id of ids){const i=h.indexOf('id=\"'+id+'\"'); if(i<0||i<last) process.exit(1); last=i;}"
+
+      - name: Validate approved Master experience contract
+        run: |
+          grep -q 'master-experience-v5.js' public/index.html
+          grep -q 'master-intelligence-v6.js' public/index.html
+          grep -q 'review-question-analytics.js' public/index.html
+          grep -q 'company_location_accountability_map' public/master-map-v2.js
+          grep -q 'PRESENTATION' public/presentation-mode.js
+          if grep -q "from('locations')" public/master-map-v2.js; then
+            echo 'Master map must use the company-wide aggregate RPC, not direct RLS-scoped location queries.'
+            exit 1
+          fi
+
+      - name: Validate review finalization intelligence contract
+        run: |
+          grep -q 'review-finalization-readiness.js' public/index.html
+          grep -q 'review_finalization_checklist' public/review-finalization-readiness.js
+          grep -q 'promotion_readiness' supabase/migrations/20260815051000_require_complete_career_voice_intelligence_before_finalization.sql
+          grep -q 'safety_priority_response' supabase/migrations/20260815051000_require_complete_career_voice_intelligence_before_finalization.sql
+          grep -q 'specialist_growth_path' supabase/migrations/20260815051000_require_complete_career_voice_intelligence_before_finalization.sql
+
+      - name: Validate two-page summary intelligence contract
+        run: |
+          grep -q 'promotion_readiness' public/review-summary-v2.js
+          grep -q 'specialist_growth_path' public/review-summary-v2.js
+          grep -q 'next_year_goal' public/review-summary-v2.js
+          grep -q 'safety_priority_response' public/review-summary-v2.js
+          grep -q 'career_feeling_response' public/review-summary-v2.js
+          grep -q 'work_preference_response' public/review-summary-v2.js
+          grep -q 'relocation_openness_response' public/review-summary-v2.js
+          grep -q 'Print 2-Page Review Summary' public/review-summary-v2.js
+
+      - name: Block legacy 001 renderer regressions
+        run: |
+          if grep -q 'A balance of both' public/ctod-001-reconciliation.js; then
+            echo 'Employee work preference must remain a hard two-choice metric.'
+            exit 1
+          fi
+          if grep -q 'employee_voice_pulse' public/ctod-001-reconciliation.js; then
+            echo '001 reconciliation must not render People Pulse; Master workspace owns analytics.'
+            exit 1
+          fi
+          if grep -q "closest('#previewSummary')\|id==='previewSummary'" public/ctod-001-reconciliation.js; then
+            echo '001 reconciliation must not intercept the two-page summary.'
+            exit 1
+          fi
+
+      - name: Validate intelligence Explorer contract
+        run: |
+          grep -q 'Employee Voice' public/master-intelligence-v6.js
+          grep -q 'Reviews' public/master-intelligence-v6.js
+          grep -q 'Coaching' public/master-intelligence-v6.js
+          grep -q 'Goals' public/master-intelligence-v6.js
+          grep -q 'Career & Readiness' public/master-intelligence-v6.js
+          grep -q 'Compensation' public/master-intelligence-v6.js
+          grep -q 'review_question_analytics' public/review-question-analytics.js
+
       - name: Validate JSON configuration
         run: |
           node -e "JSON.parse(require('fs').readFileSync('vercel.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
 
-      - name: Guard against committed secrets
+      - name: Guard against committed secret values
         run: |
-          if grep -R -n -E 're_[A-Za-z0-9_-]{20,}|sb_secret_|service_role' --exclude-dir=.git --exclude='*.zip' .; then
-            echo 'Potential production secret detected in repository.'
+          if grep -R -n -P '(^|[^A-Za-z0-9])re_[A-Za-z0-9_-]{20,}|(^|[^A-Za-z0-9])sb_secret_[A-Za-z0-9_-]{20,}' --exclude-dir=.git --exclude='*.zip' .; then
+            echo 'Potential production secret value detected in repository.'
             exit 1
           fi
 

@@ -1,14 +1,9 @@
 const sb=window.ctodSupabase;
-const RELEASE='20260815-001';
+const RELEASE='20260815-SANDBOX-STABILIZED-2';
 let lastKey='',lastAt=0;
 function cleanPath(){try{return location.pathname+location.search.replace(/([?&](token|code|invite|access_token|refresh_token)=[^&]+)/ig,'')}catch{return location.pathname}}
-async function report(type,severity,message,module,meta={}){
- if(!sb)return;
- const key=[type,message,module].join('|'),now=Date.now();if(key===lastKey&&now-lastAt<10000)return;lastKey=key;lastAt=now;
- try{await sb.rpc('report_client_runtime_event',{p_event_type:type,p_severity:severity,p_message:String(message||'Unknown client error').slice(0,1000),p_module:module||null,p_release_version:RELEASE,p_page_path:cleanPath(),p_user_agent:navigator.userAgent,p_location_id:null,p_metadata:meta||{}})}catch{}
-}
+async function report(type,severity,message,module,meta={}){if(!sb)return;const key=[type,message,module].join('|'),now=Date.now();if(key===lastKey&&now-lastAt<10000)return;lastKey=key;lastAt=now;try{await sb.rpc('report_client_runtime_event',{p_event_type:type,p_severity:severity,p_message:String(message||'Unknown client error').slice(0,1000),p_module:module||null,p_release_version:RELEASE,p_page_path:cleanPath(),p_user_agent:navigator.userAgent,p_location_id:null,p_metadata:meta||{}})}catch{}}
 window.addEventListener('error',e=>report('window_error','error',e.message||'Window error',e.filename||'browser',{line:e.lineno||null,column:e.colno||null}));
 window.addEventListener('unhandledrejection',e=>{const r=e.reason;report('unhandled_rejection','error',r?.message||String(r||'Unhandled promise rejection'),r?.stack?.split('\n')[1]?.trim()||'promise',{name:r?.name||null})});
-let lastBeat=performance.now(),stallReported=false;
-setInterval(()=>{const now=performance.now(),lag=now-lastBeat-5000;lastBeat=now;if(lag>8000&&!stallReported){stallReported=true;report('ui_main_thread_stall','fatal',`Main thread stalled approximately ${Math.round(lag/1000)} seconds`,'browser_watchdog',{lag_ms:Math.round(lag)});setTimeout(()=>stallReported=false,30000)}},5000);
+let lastBeat=performance.now(),stallReported=false;setInterval(()=>{const now=performance.now(),lag=now-lastBeat-5000;lastBeat=now;if(lag>8000&&!stallReported){stallReported=true;report('ui_main_thread_stall','fatal',`Main thread stalled approximately ${Math.round(lag/1000)} seconds`,'browser_watchdog',{lag_ms:Math.round(lag)});setTimeout(()=>stallReported=false,30000)}},5000);
 setTimeout(()=>report('workspace_loaded','info','Customer workspace loaded','bootstrap',{visibility:document.visibilityState}),2500);
