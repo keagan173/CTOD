@@ -1,0 +1,1 @@
+Final visual acceptance target after screenshots dated 2026-08-15: exactly one Employee Career Direction / Employee Voice canonical section and exactly one Relocation for Opportunity field in Compensation. The v3 controller now deduplicates by semantic heading/question text in addition to legacy IDs/classes. No review data migrations or destructive writes are part of this UI fix.
