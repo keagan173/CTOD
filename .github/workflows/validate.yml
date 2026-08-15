@@ -2,9 +2,9 @@ name: Validate CTOD
 
 on:
   push:
-    branches: [main]
+    branches: [main, ctod-sandbox]
   pull_request:
-    branches: [main]
+    branches: [main, ctod-sandbox]
 
 permissions:
   contents: read
@@ -20,11 +20,25 @@ jobs:
         run: |
           test -f public/index.html
           test -f public/app.js
+          test -f public/runtime-telemetry.js
+          test -f public/owner-support.html
           test -f vercel.json
           test -f README.md
 
-      - name: Validate JavaScript syntax
-        run: node --check public/app.js
+      - name: Validate all customer JavaScript syntax
+        run: |
+          find public -maxdepth 2 -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Validate customer workspace module references
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('public/index.html','utf8');
+          const refs=[...html.matchAll(/import\(['"]\/([^?'"\)]+\.js)/g)].map(m=>m[1]);
+          const missing=refs.filter(p=>!fs.existsSync('public/'+p));
+          if(missing.length){console.error('Missing customer modules:',missing);process.exit(1)}
+          console.log('Validated',refs.length,'workspace module references');
+          NODE
 
       - name: Validate JSON configuration
         run: |
@@ -38,7 +52,9 @@ jobs:
             exit 1
           fi
 
-      - name: Confirm Access Management is present in production source
+      - name: Confirm commercial support controls are present
         run: |
           grep -q 'Access Management' public/index.html
           grep -q 'sendInvite' public/app.js
+          grep -q 'runtime-telemetry.js' public/index.html
+          grep -q 'System Health' public/branding/ctod-owner-platform-branding.js
