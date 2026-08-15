@@ -10,7 +10,7 @@ function ensureMapHost(){
  }
  return host;
 }
-async function loadMap(){const host=ensureMapHost();if(!host)return;if(!mapLoaded){mapLoaded=true;try{await import('/master-map-v2.js?v=20260815-masterrestore1')}catch(e){console.error('CTOD master map restore',e);mapLoaded=false}}else{window.ctodRenderMasterMap?.(true)}}
+async function loadMap(){const host=ensureMapHost();if(!host)return;if(!mapLoaded){mapLoaded=true;try{await import('/master-map-v2.js?v=20260815-companywide2')}catch(e){console.error('CTOD master map restore',e);mapLoaded=false}}else{window.ctodRenderMasterMap?.(true)}}
 async function loadPresentation(){if(presentationLoaded)return;presentationLoaded=true;try{
  const original=window.ctodWorkspaceReady;const ctx=original?await original:window.ctodWorkspaceContext;
  if(ctx&&!ctx.isMaster)window.ctodWorkspaceReady=Promise.resolve({...ctx,isMaster:true});
