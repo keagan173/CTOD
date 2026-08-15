@@ -1,5 +1,5 @@
-const POLISH_VERSION='20260815-polish3';
-
+const POLISH_VERSION='20260815-polish4';
+let pollToken=0;
 function addStyle(){
   if(document.getElementById('ctodSummaryPolishStyles')) return;
   const s=document.createElement('style');
@@ -32,8 +32,19 @@ function rebuildStrengthItem(item){
   item.dataset.ctodPolished='1';
 }
 function polish(){
-  const host=document.querySelector('#printPage.review-summary-v6');if(!host||!host.querySelector('.p')||host.dataset.ctodAdaptive==='1')return;addStyle();
+  const host=document.querySelector('#printPage.review-summary-v6');if(!host||host.dataset.ctodAdaptive==='1'||host.dataset.ctodAdaptive==='building'||host.querySelectorAll('.p').length<2)return false;
+  if(host.dataset.summaryPolish===POLISH_VERSION)return true;
+  addStyle();
   const page1=host.querySelector('.p:first-child');if(page1)page1.querySelectorAll('.summary-grid .sec .item').forEach(rebuildStrengthItem);
   host.querySelectorAll('.fieldbox .label').forEach(colonize);host.querySelectorAll('.stat small').forEach(colonize);host.dataset.summaryPolish=POLISH_VERSION;
+  document.dispatchEvent(new CustomEvent('ctod:summary-polished'));
+  return true;
 }
-new MutationObserver(()=>polish()).observe(document.body,{subtree:true,childList:true});document.addEventListener('click',()=>setTimeout(polish,0),true);polish();
+function waitForSummary(){
+  const token=++pollToken;let tries=0;
+  const tick=()=>{if(token!==pollToken)return;if(polish())return;if(++tries<200)setTimeout(tick,50)};
+  setTimeout(tick,0);
+}
+document.addEventListener('click',e=>{if(e.target.closest('#previewSummary'))waitForSummary()},{capture:true});
+window.ctodPolishSummary=()=>{pollToken++;return polish()};
+if(document.querySelector('#printPage.review-summary-v6'))waitForSummary();
