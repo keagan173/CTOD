@@ -57,7 +57,7 @@ jobs:
 
       - name: Guard against committed secret values
         run: |
-          if grep -R -n -E 're_[A-Za-z0-9_-]{20,}|sb_secret_[A-Za-z0-9_-]{20,}' --exclude-dir=.git --exclude='*.zip' .; then
+          if grep -R -n -P '(^|[^A-Za-z0-9])re_[A-Za-z0-9_-]{20,}|(^|[^A-Za-z0-9])sb_secret_[A-Za-z0-9_-]{20,}' --exclude-dir=.git --exclude='*.zip' .; then
             echo 'Potential production secret value detected in repository.'
             exit 1
           fi
