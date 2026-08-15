@@ -78,6 +78,21 @@ jobs:
           grep -q 'relocation_openness_response' public/review-summary-v2.js
           grep -q 'Print 2-Page Review Summary' public/review-summary-v2.js
 
+      - name: Block legacy 001 renderer regressions
+        run: |
+          if grep -q 'A balance of both' public/ctod-001-reconciliation.js; then
+            echo 'Employee work preference must remain a hard two-choice metric.'
+            exit 1
+          fi
+          if grep -q 'employee_voice_pulse' public/ctod-001-reconciliation.js; then
+            echo '001 reconciliation must not render People Pulse; Master workspace owns analytics.'
+            exit 1
+          fi
+          if grep -q "closest('#previewSummary')\|id==='previewSummary'" public/ctod-001-reconciliation.js; then
+            echo '001 reconciliation must not intercept the two-page summary.'
+            exit 1
+          fi
+
       - name: Validate intelligence Explorer contract
         run: |
           grep -q 'Employee Voice' public/master-intelligence-v6.js
