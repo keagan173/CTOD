@@ -1,0 +1,1 @@
+Promotion scope is documentation + migration record only. Production database migration has already been applied successfully.
