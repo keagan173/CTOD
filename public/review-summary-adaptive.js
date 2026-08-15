@@ -1,4 +1,5 @@
-const ADAPTIVE_VERSION='20260815-adaptive1';
+const ADAPTIVE_VERSION='20260815-adaptive2';
+let running=false;
 function style(){if(document.getElementById('ctodAdaptiveSummaryStyles'))return;const s=document.createElement('style');s.id='ctodAdaptiveSummaryStyles';s.textContent=`
 #printPage.review-summary-v6.ctod-adaptive .p{width:8.5in;height:11in;min-height:11in;max-height:11in;overflow:hidden;position:relative;padding:.30in .38in .34in;background:#fff}
 #printPage.review-summary-v6.ctod-adaptive .ctod-adaptive-body{display:block;min-width:0;padding-bottom:24px}
@@ -11,35 +12,15 @@ function style(){if(document.getElementById('ctodAdaptiveSummaryStyles'))return;
 #printPage.review-summary-v6.ctod-adaptive .sign{position:static!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:28px!important;margin-top:28px!important}
 #printPage.review-summary-v6.ctod-adaptive .sig{display:block!important;border-top:1.5px solid #222!important;padding-top:5px!important;font-size:8.5px!important;color:#222!important;min-height:20px!important}
 #printPage.review-summary-v6.ctod-adaptive .foot{position:absolute;left:.38in;right:.38in;bottom:.16in}
-`;
-document.head.appendChild(s)}
+`;document.head.appendChild(s)}
 function continuationHeader(base){const h=base.cloneNode(true);const dt=h.querySelector('.doctype');if(dt)dt.textContent='Employee Review Summary · Continued';return h}
 function identityFor(base){return base.cloneNode(true)}
 function makePage(header,identity,stats,first){const p=document.createElement('div');p.className='p';p.appendChild(first?header.cloneNode(true):continuationHeader(header));p.appendChild(identityFor(identity));if(first&&stats)p.appendChild(stats.cloneNode(true));const body=document.createElement('div');body.className='ctod-adaptive-body';p.appendChild(body);const foot=document.createElement('div');foot.className='foot';foot.innerHTML='<span>CTOD · Confidential Employee Development Record</span><span class="ctod-page-no"></span>';p.appendChild(foot);return{p,body}}
-function groupsFromSection(sec){const groups=[];let current=null;[...sec.children].forEach(ch=>{if(ch.tagName==='H2'){current={title:(ch.textContent||'').trim(),items:[]};groups.push(current);return}if(!current){current={title:'',items:[]};groups.push(current)};if(ch.classList.contains('sign')){current.items.push(ch.cloneNode(true));return}if(ch.classList.contains('item')||ch.classList.contains('ctod-strength-row'))current.items.push(ch.cloneNode(true));else current.items.push(ch.cloneNode(true))});return groups}
-function collect(host){const p1=host.querySelector('.p:first-child'),p2=host.querySelector('.p:nth-child(2)');if(!p1||!p2)return null;const header=p1.querySelector('.brandhead'),identity=p1.querySelector('.identity'),stats=p1.querySelector('.stats');if(!header||!identity)return null;const groups=[];
-  p1.querySelectorAll('.sec').forEach(sec=>groups.push(...groupsFromSection(sec)));
-  p2.querySelectorAll('.sec').forEach(sec=>groups.push(...groupsFromSection(sec)));
-  const sign=p2.querySelector('.sign');if(sign)groups.push({title:'Signatures',items:[sign.cloneNode(true)],signature:true});
-  return{header,identity,stats,groups};}
+function groupsFromSection(sec){const groups=[];let current=null;[...sec.children].forEach(ch=>{if(ch.tagName==='H2'){current={title:(ch.textContent||'').trim(),items:[]};groups.push(current);return}if(!current){current={title:'',items:[]};groups.push(current)}current.items.push(ch.cloneNode(true))});return groups}
+function collect(host){const p1=host.querySelector('.p:first-child'),p2=host.querySelector('.p:nth-child(2)');if(!p1||!p2)return null;const header=p1.querySelector('.brandhead'),identity=p1.querySelector('.identity'),stats=p1.querySelector('.stats');if(!header||!identity)return null;const groups=[];p1.querySelectorAll('.sec').forEach(sec=>groups.push(...groupsFromSection(sec)));p2.querySelectorAll('.sec').forEach(sec=>groups.push(...groupsFromSection(sec)));const sign=p2.querySelector('.sign');if(sign)groups.push({title:'Signatures',items:[sign.cloneNode(true)],signature:true});return{header,identity,stats,groups}}
 function groupWrap(title,continued=false){const g=document.createElement('section');g.className='ctod-group sec';if(title){const h=document.createElement('h2');h.textContent=title;if(continued){const c=document.createElement('span');c.className='ctod-continuation';c.textContent='(continued)';h.appendChild(c)}g.appendChild(h)}return g}
 function tooTall(p){return p.scrollHeight>p.clientHeight+1}
-function paginate(host,data){const actions=host.querySelector('.actions')?.cloneNode(true);host.innerHTML='';host.classList.add('ctod-adaptive');style();const pages=[];let page=makePage(data.header,data.identity,data.stats,true);host.appendChild(page.p);pages.push(page);
-  for(const group of data.groups){let wrap=groupWrap(group.title,false);page.body.appendChild(wrap);let started=false;
-    if(!group.items.length){if(tooTall(page.p)){wrap.remove();page=makePage(data.header,data.identity,null,false);host.appendChild(page.p);pages.push(page);wrap=groupWrap(group.title,false);page.body.appendChild(wrap)}continue}
-    for(const raw of group.items){const item=document.createElement('div');item.className='ctod-group-item';item.appendChild(raw.cloneNode(true));wrap.appendChild(item);
-      if(tooTall(page.p)){
-        item.remove();
-        if(!started&&wrap.childElementCount<=1)wrap.remove();
-        page=makePage(data.header,data.identity,null,false);host.appendChild(page.p);pages.push(page);wrap=groupWrap(group.title,true);page.body.appendChild(wrap);wrap.appendChild(item);
-        if(tooTall(page.p)){
-          // Extremely long single item: allow it to wrap naturally on its own page rather than clipping siblings.
-          item.style.fontSize='8px';item.style.lineHeight='1.25';
-        }
-      }
-      started=true;
-    }
-  }
-  pages.forEach((x,i)=>{const n=x.p.querySelector('.ctod-page-no');if(n)n.textContent=`Page ${i+1} of ${pages.length}`});if(actions)host.appendChild(actions);host.dataset.ctodAdaptive='1';host.dataset.ctodAdaptiveVersion=ADAPTIVE_VERSION;}
-function run(){const host=document.querySelector('#printPage.review-summary-v6');if(!host||host.dataset.ctodAdaptive==='1'||host.querySelectorAll('.p').length<2)return;const data=collect(host);if(!data)return;paginate(host,data)}
-new MutationObserver(()=>setTimeout(run,0)).observe(document.body,{subtree:true,childList:true});document.addEventListener('click',()=>setTimeout(run,0),true);run();
+function paginate(host,data){const actions=host.querySelector('.actions')?.cloneNode(true);host.dataset.ctodAdaptive='building';host.innerHTML='';host.classList.add('ctod-adaptive');style();const pages=[];let page=makePage(data.header,data.identity,data.stats,true);host.appendChild(page.p);pages.push(page);for(const group of data.groups){let wrap=groupWrap(group.title,false);page.body.appendChild(wrap);let started=false;if(!group.items.length){if(tooTall(page.p)){wrap.remove();page=makePage(data.header,data.identity,null,false);host.appendChild(page.p);pages.push(page);wrap=groupWrap(group.title,false);page.body.appendChild(wrap)}continue}for(const raw of group.items){const item=document.createElement('div');item.className='ctod-group-item';item.appendChild(raw.cloneNode(true));wrap.appendChild(item);if(tooTall(page.p)){item.remove();if(!started&&wrap.childElementCount<=1)wrap.remove();page=makePage(data.header,data.identity,null,false);host.appendChild(page.p);pages.push(page);wrap=groupWrap(group.title,true);page.body.appendChild(wrap);wrap.appendChild(item);if(tooTall(page.p)){item.style.fontSize='8px';item.style.lineHeight='1.25'}}started=true}}pages.forEach((x,i)=>{const n=x.p.querySelector('.ctod-page-no');if(n)n.textContent=`Page ${i+1} of ${pages.length}`});if(actions)host.appendChild(actions);host.dataset.ctodAdaptive='1';host.dataset.ctodAdaptiveVersion=ADAPTIVE_VERSION;document.dispatchEvent(new CustomEvent('ctod:summary-paginated',{detail:{pages:pages.length}}))}
+function run(){if(running)return;const host=document.querySelector('#printPage.review-summary-v6');if(!host||host.dataset.ctodAdaptive==='1'||host.dataset.ctodAdaptive==='building'||host.querySelectorAll('.p').length<2)return;const data=collect(host);if(!data)return;running=true;try{paginate(host,data)}finally{running=false}}
+let scheduled=false;function schedule(){if(scheduled)return;scheduled=true;setTimeout(()=>{scheduled=false;run()},20)}
+new MutationObserver(muts=>{const host=document.querySelector('#printPage.review-summary-v6');if(!host||host.dataset.ctodAdaptive==='1'||host.dataset.ctodAdaptive==='building')return;if(muts.some(m=>m.target===host||host.contains(m.target)))schedule()}).observe(document.body,{subtree:true,childList:true});document.addEventListener('ctod:summary-ready',schedule);schedule();
