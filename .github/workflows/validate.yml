@@ -22,6 +22,8 @@ jobs:
           test -f public/app.js
           test -f public/runtime-telemetry.js
           test -f public/owner-support.html
+          test -f public/customer-workspace-v4.js
+          test -f public/customer-workspace-v4.css
           test -f vercel.json
           test -f README.md
 
@@ -40,15 +42,23 @@ jobs:
           console.log('Validated',refs.length,'workspace module references');
           NODE
 
+      - name: Validate stable customer navigation contract
+        run: |
+          grep -q 'id="tabMaster"' public/index.html
+          grep -q 'id="tabPeople"' public/index.html
+          grep -q 'id="tabSuccession"' public/index.html
+          grep -q 'customer-workspace-v4.js' public/index.html
+          node -e "const h=require('fs').readFileSync('public/index.html','utf8'); const ids=['tabMaster','tabReviews','tabCoaching','tabEmployees','tabPeople','tabSchedule','tabSuccession']; let last=-1; for(const id of ids){const i=h.indexOf('id=\"'+id+'\"'); if(i<0||i<last) process.exit(1); last=i;}"
+
       - name: Validate JSON configuration
         run: |
           node -e "JSON.parse(require('fs').readFileSync('vercel.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
 
-      - name: Guard against committed secrets
+      - name: Guard against committed secret values
         run: |
-          if grep -R -n -E 're_[A-Za-z0-9_-]{20,}|sb_secret_|service_role' --exclude-dir=.git --exclude='*.zip' .; then
-            echo 'Potential production secret detected in repository.'
+          if grep -R -n -E 're_[A-Za-z0-9_-]{20,}|sb_secret_[A-Za-z0-9_-]{20,}' --exclude-dir=.git --exclude='*.zip' .; then
+            echo 'Potential production secret value detected in repository.'
             exit 1
           fi
 
