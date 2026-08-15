@@ -1,17 +1,17 @@
-const ADAPTIVE_VERSION='20260815-adaptive3';
+const ADAPTIVE_VERSION='20260815-adaptive4';
 let running=false;
 function style(){if(document.getElementById('ctodAdaptiveSummaryStyles'))return;const s=document.createElement('style');s.id='ctodAdaptiveSummaryStyles';s.textContent=`
 #printPage.review-summary-v6.ctod-adaptive .p{width:8.5in;height:11in;min-height:11in;max-height:11in;overflow:hidden;position:relative;padding:.30in .38in .34in;background:#fff}
-#printPage.review-summary-v6.ctod-adaptive .ctod-adaptive-body{display:block;min-width:0;padding-bottom:24px}
+#printPage.review-summary-v6.ctod-adaptive .ctod-adaptive-body{display:block;min-width:0;padding-bottom:72px}
 #printPage.review-summary-v6.ctod-adaptive .ctod-group{display:block;margin:8px 0 0;min-width:0}
 #printPage.review-summary-v6.ctod-adaptive .ctod-group h2{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#6d500e;margin:0 0 5px;padding-bottom:4px;border-bottom:1px solid #dfc980}
 #printPage.review-summary-v6.ctod-adaptive .ctod-group-item{display:block;break-inside:avoid;page-break-inside:avoid;min-width:0}
 #printPage.review-summary-v6.ctod-adaptive .ctod-continuation{font-size:8px;color:#777;font-weight:700;margin-left:5px;text-transform:none;letter-spacing:0}
 #printPage.review-summary-v6.ctod-adaptive .summary-grid{display:block!important}
 #printPage.review-summary-v6.ctod-adaptive .sec{width:100%!important;max-width:100%!important}
-#printPage.review-summary-v6.ctod-adaptive .sign{position:static!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:28px!important;margin-top:28px!important}
-#printPage.review-summary-v6.ctod-adaptive .sig{display:block!important;border-top:1.5px solid #222!important;padding-top:5px!important;font-size:8.5px!important;color:#222!important;min-height:20px!important}
-#printPage.review-summary-v6.ctod-adaptive .foot{position:absolute;left:.38in;right:.38in;bottom:.16in}
+#printPage.review-summary-v6.ctod-adaptive .sign{position:static!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:28px!important;margin-top:28px!important;margin-bottom:18px!important}
+#printPage.review-summary-v6.ctod-adaptive .sig{display:block!important;border-top:1.5px solid #222!important;padding-top:5px!important;font-size:8.5px!important;color:#222!important;min-height:24px!important}
+#printPage.review-summary-v6.ctod-adaptive .foot{position:absolute;left:.38in;right:.38in;bottom:.16in;min-height:14px;background:#fff}
 `;document.head.appendChild(s)}
 function continuationHeader(base){const h=base.cloneNode(true);const dt=h.querySelector('.doctype');if(dt)dt.textContent='Employee Review Summary · Continued';return h}
 function identityFor(base){return base.cloneNode(true)}
