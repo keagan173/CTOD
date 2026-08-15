@@ -1,9 +1,9 @@
 (()=>{
-  const PRIMARY='/branding/ctod-logo-1-primary.svg?v=20260814-owner';
-  const PEOPLE='/branding/ctod-logo-2-people-shield.svg?v=20260814-owner';
-  const PERFORMANCE='/branding/ctod-logo-4-performance-mark.svg?v=20260814-owner';
+  const PRIMARY='/branding/ctod-logo-1-primary.svg?v=20260815-owner';
+  const PEOPLE='/branding/ctod-logo-2-people-shield.svg?v=20260815-owner';
+  const PERFORMANCE='/branding/ctod-logo-4-performance-mark.svg?v=20260815-owner';
   if(!document.querySelector('link[data-ctod-owner-theme]')){
-    const l=document.createElement('link');l.rel='stylesheet';l.href='/branding/ctod-owner-platform-theme.css?v=20260814';l.dataset.ctodOwnerTheme='1';document.head.appendChild(l);
+    const l=document.createElement('link');l.rel='stylesheet';l.href='/branding/ctod-owner-platform-theme.css?v=20260815';l.dataset.ctodOwnerTheme='1';document.head.appendChild(l);
   }
   function install(){
     const main=document.querySelector('main');if(!main)return;
@@ -14,7 +14,7 @@
     if(!main.querySelector(':scope > .ctod-owner-nav')){
       const nav=document.createElement('nav');nav.className='ctod-owner-nav';nav.setAttribute('aria-label','Platform Owner');
       const customer=new URLSearchParams(location.search).get('company');
-      nav.innerHTML='<a href="/owner">Owner Console</a><a href="/owner-industry-builder">Industry Builder</a>'+(customer?`<a href="/owner-customer?company=${encodeURIComponent(customer)}">Customer Management</a>`:'');
+      nav.innerHTML='<a href="/owner">Owner Console</a><a href="/owner-support">System Health</a><a href="/owner-industry-builder">Industry Builder</a>'+(customer?`<a href="/owner-customer?company=${encodeURIComponent(customer)}">Customer Management</a>`:'');
       const rule=main.querySelector(':scope > .ctod-owner-rule');
       if(rule)rule.insertAdjacentElement('afterend',nav);else main.prepend(nav);
       const here=location.pathname.replace(/\.html$/,'');
