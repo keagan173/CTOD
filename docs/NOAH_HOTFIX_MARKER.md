@@ -1,1 +1,0 @@
-Noah Blythe review hotfix promotion marker. This file documents the raise-discussion upsert and career singleton fixes validated in Sandbox on 2026-08-15.
