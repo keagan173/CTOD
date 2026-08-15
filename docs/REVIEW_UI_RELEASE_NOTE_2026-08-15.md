@@ -1,0 +1,1 @@
+Release note: semantic singleton enforcement for Career Direction and Relocation. Code validation passed on c90ad4e1c089fd500c17de82d1f9efa479e90044. Subsequent commits are documentation-only.

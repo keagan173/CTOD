@@ -1,0 +1,1 @@
+Invariant: one canonical Employee Career Direction/Voice section and one relocation field only.
