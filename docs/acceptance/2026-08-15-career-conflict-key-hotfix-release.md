@@ -1,0 +1,1 @@
+Release-ready after database migration applied successfully and manager-identity rollback test passed. Promote repository migration record to main so source control matches Production schema.
