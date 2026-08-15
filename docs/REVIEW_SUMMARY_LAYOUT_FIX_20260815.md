@@ -1,0 +1,1 @@
+System-wide review summary layout fix: Key Strengths are full-width stacked rows with wrapped reasons/manager notes. Page 2 reserves space for acknowledgment and both signature lines. Applied through review-summary-polish v2 and used by screen/PDF/print output.
