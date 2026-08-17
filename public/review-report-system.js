@@ -1,1 +1,1 @@
-PLACEHOLDER
+import '/review-report-system-core.js';
