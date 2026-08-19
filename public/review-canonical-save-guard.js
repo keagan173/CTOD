@@ -23,6 +23,7 @@ if(!sb||!root){}else{
     if(specialist)calls.push(sb.rpc('save_review_specialist_growth',{p_review_id:id,p_specialist_growth_path:specialist}));
     if(nextYear)calls.push(sb.rpc('save_review_career_prompts',{p_review_id:id,p_next_year_goal:nextYear,p_five_year_position:null}));
     if(safety&&career&&work&&relocate)calls.push(sb.rpc('save_review_employee_voice',{p_review_id:id,p_safety_priority_response:safety,p_career_feeling_response:career,p_work_preference_response:work,p_relocation_openness_response:relocate}));
+    calls.push(sb.rpc('normalize_review_compensation',{p_review_id:id}));
     const results=await Promise.all(calls);
     const failed=results.find(x=>x?.error);
     return failed?{ok:false,error:failed.error.message}:{ok:true};
@@ -33,11 +34,11 @@ if(!sb||!root){}else{
     btn.dataset.ctodCanonicalGuard='1';
     btn.onclick=async function(ev){
       const msg=root.querySelector('#reviewSaveMsg');
-      if(msg)msg.textContent='Saving career and Employee Voice...';
+      if(msg)msg.textContent='Saving review data...';
       this.disabled=true;
       try{
         const r=await persistCanonical();
-        if(!r.ok){if(msg)msg.textContent='Career/Employee Voice save failed: '+r.error;return}
+        if(!r.ok){if(msg)msg.textContent='Review save failed: '+r.error;return}
         return await original.call(this,ev);
       }finally{this.disabled=false}
     };
