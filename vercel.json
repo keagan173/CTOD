@@ -8,7 +8,7 @@
   ],
   "rewrites": [
     {"source":"/","has":[{"type":"host","value":"owner.ctodsystem.com"}],"destination":"/owner.html"},
-    {"source":"/owner-customer-base","destination":"/owner-customer.html"},
+    {"source":"/owner-customer-legacy","destination":"/owner-customer.html"},
     {"source":"/industry-builder","destination":"/owner-industry-builder.html"},
     {"source":"/owner-industry-builder","destination":"/owner-industry-builder.html"}
   ],
