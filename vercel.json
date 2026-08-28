@@ -8,7 +8,6 @@
   ],
   "rewrites": [
     {"source":"/","has":[{"type":"host","value":"owner.ctodsystem.com"}],"destination":"/owner.html"},
-    {"source":"/owner-customer-v2","destination":"/owner-customer-v2.html"},
     {"source":"/owner-customer-legacy","destination":"/owner-customer.html"},
     {"source":"/industry-builder","destination":"/owner-industry-builder.html"},
     {"source":"/owner-industry-builder","destination":"/owner-industry-builder.html"}
@@ -21,10 +20,6 @@
         {"key":"Referrer-Policy","value":"strict-origin-when-cross-origin"},
         {"key":"Permissions-Policy","value":"camera=(), microphone=(), geolocation=()"}
       ]
-    },
-    {
-      "source":"/owner-customer-v2",
-      "headers":[{"key":"Link","value":"</branding/ctod-owner-platform-theme.css?v=20260814-3>; rel=stylesheet"}]
     }
   ]
 }
